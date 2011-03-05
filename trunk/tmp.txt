@@ -1,0 +1,5 @@
+total 12
+drwxrwxr-x. 3 felsted felsted 4096 Mar  5 04:29 .
+drwxrwxr-x. 3 felsted felsted 4096 Mar  5 03:40 ..
+drwxrwxr-x. 6 felsted felsted 4096 Mar  5 04:29 .svn
+-rw-rw-r--. 1 felsted felsted    0 Mar  5 04:29 tmp.txt
