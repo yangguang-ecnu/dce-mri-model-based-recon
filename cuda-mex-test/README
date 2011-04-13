@@ -6,3 +6,5 @@ gcc -o dynsimple main.c -L. -lsimple
 
 Example of compiling against the above shared library with mex and matlab stuff:
 mex mlsimple2.c -L. -lsimple
+
+Don't forget to set LD_LIBRARY_PATH appropriately
