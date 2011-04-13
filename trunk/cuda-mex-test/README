@@ -1,0 +1,8 @@
+Example of compiling a cuda kernal into a shared libaray:
+nvcc --shared -o libsimple.so simple.cu --compiler-options '-fPIC' -I /usr/local/apps/cuda/3.1/cuda/include -L /usr/local/apps/cuda/3.1/cuda/lib64 -lcudart
+
+Example of compiling against the above shared library (no matlab):
+gcc -o dynsimple main.c -L. -lsimple
+
+Example of compiling against the above shared library with mex and matlab stuff:
+mex mlsimple2.c -L. -lsimple
