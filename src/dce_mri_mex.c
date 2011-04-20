@@ -1,7 +1,7 @@
 /* NOTE: All comments in this file must be block comments for mex */
 
 /* 
- * dce-mri-mex.c
+ * dce_mri_mex.c
  *
  * This file contains the matlab integration code for the CUDA kernel. Matlab
  * has its own wrapper syntax and special functions to copy data and so we
@@ -24,7 +24,8 @@
 #include "mex.h"
 
 /* Local Includes */
-#include "dce-mri-kernel.h"
+#include "dce_mri_constants.h"
+#include "dce_mri_kernel.h"
 
 /* 
  * mexFunction
@@ -68,17 +69,28 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   const mxArray *mxT0 = prhs[2];
 
   /* Extract specific input data ptrs */
-  float *kTrans = mxGetPr(mxKTrans);
-  float *kEp = mxGetPr(mxKEp);
-  float *t0 = mxGetPr(mxT0);
+  float *kTrans = (float *)mxGetPr(mxKTrans);
+  float *kEp = (float *)mxGetPr(mxKEp);
+  float *t0 = (float *)mxGetPr(mxT0);
+
+  /* Extract other useful information from input */
+  const mwSize *kTransDims = mxGetDimensions(mxKTrans);
 
   /* Setup output matrix */
-  mxArray *mxImgSeq = mxCreateNumericMatrix(1, 1, mxSINGLE_CLASS, mxCOMPLEX);
-  float *imgSeqR = mxGetPr(mxImgSeq);
-  float *imgSeqI = mxGetPi(mxImgSeq);
+  mwSize ndim = 3;
+  mwSize *dims = (mwSize *)mxMalloc(ndim * sizeof(mwSize));
+  dims[0] = kTransDims[0]; dims[1] = kTransDims[1]; dims[2] = DIMENSION3;
+  mxArray *mxImgSeq = mxCreateNumericArray(ndim, dims, mxSINGLE_CLASS, mxCOMPLEX);
+
+  /* Extract specific output data ptrs */
+  float *imgSeqR = (float *)mxGetPr(mxImgSeq);
+  float *imgSeqI = (float *)mxGetPi(mxImgSeq);
 
   /* Call the CUDA kernel with the translated data */
-  host_compute(kTrans, kEp, t0, imgSeqR, imgSeqI);
+  host_compute(kTrans, kEp, t0, imgSeqR, imgSeqI, dims[0], dims[1]);
+
+  /* Free memory */
+  mxFree(dims);
 
   /* Set output to computed matrix */
   plhs[0] = mxImgSeq;
