@@ -10,23 +10,22 @@
 # setup CUDA flags for shared lib generation
 CUDA_CC        = nvcc
 CUDA_FLAGS     = --shared --compiler-options '-fPIC'
-CUDA_INCLUDE   = /usr/local/apps/cuda/3.1/cuda/include
-CUDA_LIBRARIES = /usr/local/apps/cuda/3.1/cuda/lib64
-CUDA_LIBS      = -lcudart
-CUDA_SRC		   = dce-mri-kernel.cu
-CUDA_OUT       = libdcemri.so
+CUDA_INCLUDE   = -I/usr/local/apps/cuda/3.1/cuda/include -I/usr/local/apps/cuda/SDK2/C/common/inc
+CUDA_LIBRARIES = -L/usr/local/apps/cuda/3.1/cuda/lib64 -L/usr/local/apps/cuda/SDK2/C/lib
+CUDA_LIBS      = -lcudart -lcutil
+CUDA_SRC		   = dce_mri_kernel.cu
 
 # setup mex flags for mex function generation
 MEX_CC  = mex
-MEX_SRC = dce-mri-mex.c
+MEX_SRC = dce_mri_mex.c
 
 all: kernel mex
 
 kernel:
-	$(CUDA_CC) -o $(CUDA_OUT) $(CUDA_SRC) $(CUDA_FLAGS) -I $(CUDA_INCLUDE) -L $(CUDA_LIBRARIES) $(CUDA_LIBS)
+	$(CUDA_CC) -o libdcemri.so $(CUDA_SRC) $(CUDA_FLAGS) $(CUDA_INCLUDE) $(CUDA_LIBRARIES) $(CUDA_LIBS)
 
 mex: kernel
-	$(MEX_CC) $(MEX_SRC) -L. -l$(CUDA_OUT)
+	$(MEX_CC) $(MEX_SRC) -L. -ldcemri
 
 clean:
-	rm -rf *.o *.so *.mex64
+	rm -rf *.o *.so *.mexa64

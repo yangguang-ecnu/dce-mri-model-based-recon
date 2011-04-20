@@ -1,12 +1,11 @@
 /* 
- * dce-mri-kernel.h
+ * dce_mri_kernel.h
+ *
+ * A header file containing the public facing API of the CUDA kernel.
  *
  * Authors: Ben Felsted, Simon Williams, Cheng Ye
  *    Date: Spring 2011
  */
-
-#define SIZE 16
-#define BLOCKSIZE 4
 
 /*
  * host_compute
@@ -19,4 +18,11 @@
  * imgSeqR, imgSeqI are output parameters corresponding to the real and
  * imaginary parts of the computed values.
  */
-void host_compute(float *kTrans, float *kEp, float *t0, float *imgSeqR, float *imgSeqI);
+float host_compute(
+    float *kTrans, 
+    float *kEp, 
+    float *t0, 
+    float *imgSeqR, 
+    float *imgSeqI, 
+    int dimX, 
+    int dimY);
