@@ -56,9 +56,14 @@ __global__ void compute(
   float ai = 1.0f / a;
   float b = ai - 2.0f + a;
   float c = KTrans[idx] * samplingRate / (my_k_ep * my_k_ep);
-    
+
   /* Compute the convolution */
   int i, j;
+
+  for (j = 0; j < Tj; j++) {
+    imgSeqR[(dimX * dimY * j) + idx] = 0;
+  }
+
   for (i = 0; i < Ti; i++) {
     /* Scale the input function (vector) for the convolution */
     float ci = c * Cpi[i];
@@ -84,7 +89,7 @@ __global__ void compute(
       }
 
       /* Accumulate (update time point j) */
-      imgSeqR[(dimX * dimY * j) + idx] = ci * s;
+      imgSeqR[(dimX * dimY * j) + idx] += ci * s;
     }
   }
 }
@@ -129,13 +134,13 @@ float host_compute(
   /* Cuda memory initialization */
   cudaMalloc((void **) &d_KTrans, dimX * dimY * sizeof(float));
   cudaMalloc((void **) &d_k_ep, dimX * dimY * sizeof(float));
-  cudaMalloc((void **) &d_Cpi, dimX * dimY * sizeof(float));
+  cudaMalloc((void **) &d_Cpi, Ti * sizeof(float));
   cudaMalloc((void **) &d_imgSeqR, dimX * dimY * Tj * sizeof(float));
   cudaMalloc((void **) &d_imgSeqI, dimX * dimY * Tj * sizeof(float));
 
   cudaMemcpy(d_KTrans, KTrans, dimX * dimY * sizeof(float), cudaMemcpyHostToDevice);
   cudaMemcpy(d_k_ep, k_ep, dimX * dimY * sizeof(float), cudaMemcpyHostToDevice);
-  cudaMemcpy(d_Cpi, Cpi, dimX * dimY * sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_Cpi, Cpi, Ti * sizeof(float), cudaMemcpyHostToDevice);
 
   /* Start the timer */
   // cudaEventRecord(start_event, 0);

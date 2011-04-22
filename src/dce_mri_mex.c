@@ -72,11 +72,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   const mxArray *mx_KTrans = prhs[0];
   const mxArray *mx_k_ep = prhs[1];
   const mxArray *mx_dt_i = prhs[2];
-  const mxArray *mx_Ti = prhs[2];
-  const mxArray *mx_dt_j = prhs[2];
-  const mxArray *mx_Tj = prhs[2];
-  const mxArray *mx_Cpi = prhs[2];
-  const mxArray *mx_samplingRate = prhs[3];
+  const mxArray *mx_Ti = prhs[3];
+  const mxArray *mx_dt_j = prhs[4];
+  const mxArray *mx_Tj = prhs[5];
+  const mxArray *mx_Cpi = prhs[6];
+  const mxArray *mx_samplingRate = prhs[7];
 
   /* Extract specific input data ptrs */
   float *KTrans = (float *)mxGetPr(mx_KTrans);
