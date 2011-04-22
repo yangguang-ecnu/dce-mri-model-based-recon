@@ -166,7 +166,7 @@ float host_compute(
 
   /* Copy cuda memory back to device */
   cudaMemcpy(imgSeqR, d_imgSeqR, dimX * dimY * Tj * sizeof(float), cudaMemcpyDeviceToHost);
-  cudaMemcpy(imgSeqI, d_imgSeqI, dimX * dimY * DIMENSION3 * sizeof(float), cudaMemcpyDeviceToHost);
+  cudaMemcpy(imgSeqI, d_imgSeqI, dimX * dimY * Tj * sizeof(float), cudaMemcpyDeviceToHost);
 
   //return cuda_elapsed_time;
   return 0;
