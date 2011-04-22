@@ -156,14 +156,14 @@ function demo
     
     
     
-    convolutionOuterLoop
+    convolutionDemo
 
     '';
 end
 
 
 %%
-function signal = convolutionOuterLoop()
+function convolutionDemo()
     t0 = 0; 
     tf = 5;
     T = 50;
@@ -174,13 +174,19 @@ function signal = convolutionOuterLoop()
     Ti = oversample_i*T;
     Tj = oversample_j*T;
     
-    ti = linspace(t0, tf, Ti);
-    tj = linspace(t0, tf, Tj);
+    dt_i = (tf - t0) / (Ti);
+    dt_j = (tf - t0) / (Tj);
+    
+    ti = (0:Ti-1) * dt_i;
+    tj = (0:Tj-1) * dt_j;
+    
+%     ti = linspace(t0, tf, Ti);
+%     tj = linspace(t0, tf, Tj);
 
     Cpi = breastCp(ti);
     
-    dt_i = ti(2) - ti(1);
-    dt_j = tj(2) - tj(1);
+%     dt_i = ti(2) - ti(1);
+%     dt_j = tj(2) - tj(1);
 
     figure
     hold all
@@ -196,14 +202,136 @@ function signal = convolutionOuterLoop()
 %         end
 
         %signal = convolutionForC(KTrans, k_ep, ti, tj, Cpi, oversample_i);
-        signal = convolutionForC_optimize_1(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i);
+        signal = convolutionForC_optimize_2(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i);
         plot(tj, signal)
     end
 end
-
 %%
 
+
+
 %%%%%%%%%%%%%%%%%%  C    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function signal = convolutionForC_optimize_2(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, samplingRate)
+    
+    % Interval length
+    L = 1/samplingRate;
+
+    % Common subexpressions
+    f = k_ep*L;
+    a = exp(f);
+    ai= 1/a;
+    b = ai - 2 + a;
+    c = KTrans * samplingRate / (k_ep * k_ep);
+    
+    % Scale the input function (vector) for the convolution
+%     Ci = zeros(1,Ti);
+%     for i=1:Ti
+%         Ci(i) = c * Cpi(i);
+%     end
+    dh_i = dt_i/dt_j;
+    %fn   = floor(-L/dt_j);
+    %fp   = floor( L/dt_j);     % Not same as -floor(L/dt_j)
+
+    L_dt   = L/dt_j;
+    
+    
+    % Compute the convolution
+    signal = zeros(1,Tj);
+    hi = 0 + Ti*eps(dh_i);
+    ti = 0;
+    for i = 0:Ti-1
+        Ci = c * Cpi(i+1);
+        %ti = dt_i * i;
+        ti = ti + dt_i;
+        hi = hi + dh_i;
+        
+        %-L/dt_j
+        
+%         j1 = floor(ti/dt_j) + floor(-L/dt_j);
+%         j1 = floor(i*dt_i/dt_j) + floor(-L/dt_j);
+        
+        
+%         j0 = 0;
+%         j1 = floor((ti - L)/dt_j);
+%         j2 = floor((ti    )/dt_j);
+%         j3 = floor((ti + L)/dt_j);
+%         j4 = Tj;
+
+        j0 = 0;
+        j1 = floor(hi - L_dt);
+        j2 = floor(hi);
+        j3 = floor(hi + L_dt);
+        j4 = Tj;
+        
+        
+        
+        for j = 0:Tj-1
+            tj = dt_j * j;
+            u = tj - ti;
+
+            % Some more common terms
+            g = k_ep*u;
+            e = exp(-g);
+            
+            % u <= -L
+            % tj - ti <= -L
+            %  j*dt_j <= -L + ti
+            %       j <= (-L + ti)/dt_j;
+
+            % u <= -L   -->     j <= (ti - L)/dt_j;
+            % u <= 0    -->     j <= (ti    )/dt_j;
+            % u <= L    -->     j <= (ti + L)/dt_j;
+            branch = 0;
+            if j <= j1
+                branch = 1;
+            elseif j <= j2
+                branch = 2;
+            elseif j <= j3
+                branch = 3;
+            elseif j <= j4
+                branch = 4;
+            else
+                branch = 5;
+            end
+                
+            s1 = 0;
+            s2 = e * ai - 1 + f + g;
+            s3 = e * (ai - 2) + 1 + f - g;
+            s4 = e * b;
+            
+            % Fake-branch
+            if u < -L
+                s = s1;
+                otherBranch = 1;
+            elseif u < 0 
+                s = s2; 
+                otherBranch = 2;
+            elseif u < L
+                s = s3;
+                otherBranch = 3;
+            else
+                s = s4;
+                otherBranch = 4;
+            end
+
+            if branch ~= otherBranch
+                fprintf(['Warning: expected branch %d, was really in %d: ' ...
+                'delta=%d, j = %d, (%d,%d,%d,%d,%d), u=%g, L=%g\n'], ...
+                otherBranch, branch,branch-otherBranch,j,j0,j1,j2,j3,j4,u,L);
+                [s1, s2, s3, s4]./s
+            '';
+            end
+            
+            % Accumulate
+            signal(j+1) = signal(j+1) + Ci * s;
+        end
+    end
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+
+
+%%
 function signal = convolutionForC_optimize_1(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, samplingRate)
     
     % Interval length
@@ -250,9 +378,7 @@ function signal = convolutionForC_optimize_1(KTrans, k_ep, dt_i, Ti, dt_j, Tj, C
         end
     end
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
-
 
 
 
