@@ -204,18 +204,16 @@ end
 %%
 
 %%%%%%%%%%%%%%%%%%  C    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 function signal = convolutionForC_optimize_1(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, samplingRate)
     
     % Interval length
     L = 1/samplingRate;
-    
-    %Ti = numel(ti);
-    %Tj = numel(tj);
 
     % Common factors
-    a = exp(k_ep*L);
-    b = 1/a - 2 + a;
+    f = k_ep*L;
+    a = exp(f);
+    ai= 1/a
+    b = ai - 2 + a;
     c = KTrans * samplingRate / (k_ep * k_ep);
     
     % Scale the input function (vector) for the convolution
@@ -231,21 +229,28 @@ function signal = convolutionForC_optimize_1(KTrans, k_ep, dt_i, Ti, dt_j, Tj, C
             tj = dt_j * j;
             ti = dt_i * i;
             u = tj - ti;
+
+            g = k_ep*u;
+            e = exp(-g);
+            
             if u <= -L
                 s = 0;
             elseif u <= 0 
-                s = exp(-k_ep*(L + u)) - 1 + k_ep*(u + L); 
+                s = e * ai - 1 + f + g; 
+                %s = exp(-k_ep*(L + u)) - 1 + k_ep*(u + L); 
             elseif u <= L
-                s = exp(-k_ep*(L + u)) - 2*exp(-k_ep*u) + 1 + k_ep*(L - u);
+                s = e * (ai - 2) + 1 + f - g;
+                %s = exp(-k_ep*(L + u)) - 2*exp(-k_ep*u) + 1 + k_ep*(L - u);
             else
-                s = exp(-k_ep*u) * b;
+                s = e * b;
+                %s = exp(-k_ep*u) * b;
             end
             signal(j) = signal(j) + Ci(i) * s;
         end
     end
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%%
 
 
 
@@ -253,9 +258,6 @@ end
 
 
 %%
-
-%%%%%%%%%%%%%%%%%%  C    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 function signal = convolutionForC(KTrans, k_ep, ti, tj, Cpi, samplingRate)
     
     % Interval length
@@ -293,7 +295,7 @@ function signal = convolutionForC(KTrans, k_ep, ti, tj, Cpi, samplingRate)
         end
     end
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 %%
 function signal = convolutionInnerLoop(t, k_ep, t_0, samplingRate)
