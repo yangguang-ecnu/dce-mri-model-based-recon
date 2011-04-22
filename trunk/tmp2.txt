@@ -1,0 +1,188 @@
+[0m.:
+total 20K
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+drwxr-xr-x 3 felsted csclass 4096 Apr 22 09:57 [38;5;27mcuda-mex-test[0m
+drwxr-xr-x 3 felsted csclass 4096 Apr 22 09:57 [38;5;27msrc[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m.svn[0m
+-rw-r--r-- 1 felsted csclass    0 Apr 22 09:57 [0mtmp2.txt[0m
+
+./cuda-mex-test:
+total 28K
+drwxr-xr-x 3 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+-rw-r--r-- 1 felsted csclass  676 Apr 22 09:57 [0mmain.c[0m
+-rw-r--r-- 1 felsted csclass  739 Apr 22 09:57 [0mmlsimple2.c[0m
+-rw-r--r-- 1 felsted csclass  481 Apr 22 09:57 [0mREADME[0m
+-rw-r--r-- 1 felsted csclass  987 Apr 22 09:57 [0msimple.cu[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m.svn[0m
+
+./cuda-mex-test/.svn:
+total 32K
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 3 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+-r--r--r-- 1 felsted csclass  452 Apr 22 09:57 [0mall-wcprops[0m
+-r--r--r-- 1 felsted csclass  886 Apr 22 09:57 [0mentries[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mprop-base[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mprops[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mtext-base[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27mtmp[0m
+
+./cuda-mex-test/.svn/prop-base:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./cuda-mex-test/.svn/props:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./cuda-mex-test/.svn/text-base:
+total 24K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+-r--r--r-- 1 felsted csclass  676 Apr 22 09:57 [0mmain.c.svn-base[0m
+-r--r--r-- 1 felsted csclass  739 Apr 22 09:57 [0mmlsimple2.c.svn-base[0m
+-r--r--r-- 1 felsted csclass  481 Apr 22 09:57 [0mREADME.svn-base[0m
+-r--r--r-- 1 felsted csclass  987 Apr 22 09:57 [0msimple.cu.svn-base[0m
+
+./cuda-mex-test/.svn/tmp:
+total 20K
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mprop-base[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mprops[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mtext-base[0m
+
+./cuda-mex-test/.svn/tmp/prop-base:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./cuda-mex-test/.svn/tmp/props:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./cuda-mex-test/.svn/tmp/text-base:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./src:
+total 36K
+drwxr-xr-x 3 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+-rw-r--r-- 1 felsted csclass  228 Apr 22 09:57 [0mdce_mri_constants.h[0m
+-rw-r--r-- 1 felsted csclass 2808 Apr 22 09:57 [0mdce_mri_kernel.cu[0m
+-rw-r--r-- 1 felsted csclass  766 Apr 22 09:57 [0mdce_mri_kernel.h[0m
+-rw-r--r-- 1 felsted csclass 3099 Apr 22 09:57 [0mdce_mri_mex.c[0m
+-rw-r--r-- 1 felsted csclass 1106 Apr 22 09:57 [0mmakefile[0m
+-rw-r--r-- 1 felsted csclass  108 Apr 22 09:57 [0mREADME[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m.svn[0m
+
+./src/.svn:
+total 32K
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 3 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+-r--r--r-- 1 felsted csclass  632 Apr 22 09:57 [0mall-wcprops[0m
+-r--r--r-- 1 felsted csclass 1230 Apr 22 09:57 [0mentries[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mprop-base[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mprops[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mtext-base[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27mtmp[0m
+
+./src/.svn/prop-base:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./src/.svn/props:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./src/.svn/text-base:
+total 32K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+-r--r--r-- 1 felsted csclass  228 Apr 22 09:57 [0mdce_mri_constants.h.svn-base[0m
+-r--r--r-- 1 felsted csclass 2808 Apr 22 09:57 [0mdce_mri_kernel.cu.svn-base[0m
+-r--r--r-- 1 felsted csclass  766 Apr 22 09:57 [0mdce_mri_kernel.h.svn-base[0m
+-r--r--r-- 1 felsted csclass 3099 Apr 22 09:57 [0mdce_mri_mex.c.svn-base[0m
+-r--r--r-- 1 felsted csclass 1106 Apr 22 09:57 [0mmakefile.svn-base[0m
+-r--r--r-- 1 felsted csclass  108 Apr 22 09:57 [0mREADME.svn-base[0m
+
+./src/.svn/tmp:
+total 20K
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mprop-base[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mprops[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mtext-base[0m
+
+./src/.svn/tmp/prop-base:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./src/.svn/tmp/props:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./src/.svn/tmp/text-base:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./.svn:
+total 28K
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+-r--r--r-- 1 felsted csclass   62 Apr 22 09:57 [0mall-wcprops[0m
+-r--r--r-- 1 felsted csclass  260 Apr 22 09:57 [0mentries[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mprop-base[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mprops[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mtext-base[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27mtmp[0m
+
+./.svn/prop-base:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./.svn/props:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./.svn/text-base:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./.svn/tmp:
+total 20K
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 6 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mprop-base[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mprops[0m
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27mtext-base[0m
+
+./.svn/tmp/prop-base:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./.svn/tmp/props:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+
+./.svn/tmp/text-base:
+total 8K
+drwxr-xr-x 2 felsted csclass 4096 Apr 22 09:57 [38;5;27m.[0m
+drwxr-xr-x 5 felsted csclass 4096 Apr 22 09:57 [38;5;27m..[0m
+[m
