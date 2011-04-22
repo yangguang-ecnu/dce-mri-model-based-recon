@@ -209,7 +209,7 @@ function signal = convolutionForC_optimize_1(KTrans, k_ep, dt_i, Ti, dt_j, Tj, C
     % Interval length
     L = 1/samplingRate;
 
-    % Common factors
+    % Common subexpressions
     f = k_ep*L;
     a = exp(f);
     ai= 1/a;
@@ -230,21 +230,22 @@ function signal = convolutionForC_optimize_1(KTrans, k_ep, dt_i, Ti, dt_j, Tj, C
             ti = dt_i * i;
             u = tj - ti;
 
+            % Some more common terms
             g = k_ep*u;
             e = exp(-g);
             
+            % Fake-branch
             if u <= -L
                 s = 0;
             elseif u <= 0 
                 s = e * ai - 1 + f + g; 
-                %s = exp(-k_ep*(L + u)) - 1 + k_ep*(u + L); 
             elseif u <= L
                 s = e * (ai - 2) + 1 + f - g;
-                %s = exp(-k_ep*(L + u)) - 2*exp(-k_ep*u) + 1 + k_ep*(L - u);
             else
                 s = e * b;
-                %s = exp(-k_ep*u) * b;
             end
+            
+            % Accumulate
             signal(j) = signal(j) + Ci(i) * s;
         end
     end
