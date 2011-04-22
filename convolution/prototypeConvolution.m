@@ -189,7 +189,7 @@ function signal = convolutionOuterLoop()
         
         sj = zeros(1,Tj);
         for i=1:Ti
-            signal_part = convolutionFromMapleVectorized(tj, k_ep, ti(i), oversample_i);
+            signal_part = convolutionInnerLoop(tj, k_ep, ti(i), oversample_i);
             sj = sj + Cpi(i) * KTrans * signal_part;
         end
         plot(tj,sj)
@@ -204,7 +204,7 @@ function signal = convolutionInnerLoop(t, k_ep, t_0, samplingRate)
     a = exp(k_ep*L);
     b = 1/a - 2 + a;
     
-    signal = zeros(t,1);
+    signal = zeros(1,T);
     for j = 1:T
         u = t(j) - t_0;
         if u <= -L
