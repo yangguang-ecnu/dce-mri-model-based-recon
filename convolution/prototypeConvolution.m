@@ -212,7 +212,7 @@ function signal = convolutionForC_optimize_1(KTrans, k_ep, dt_i, Ti, dt_j, Tj, C
     % Common factors
     f = k_ep*L;
     a = exp(f);
-    ai= 1/a
+    ai= 1/a;
     b = ai - 2 + a;
     c = KTrans * samplingRate / (k_ep * k_ep);
     
