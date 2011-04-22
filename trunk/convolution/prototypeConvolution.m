@@ -153,10 +153,77 @@ function demo
         plot(ti,si)
     end
     %figure, plot(ti,si)
+    
+    
+    
+    convolutionOuterLoop
 
     '';
 end
 
+
+%%
+function signal = convolutionOuterLoop()
+    t0 = 0; 
+    tf = 5;
+    T = 50;
+
+    oversample_i = 8;
+    oversample_j = 2;
+    
+    Ti = oversample_i*T;
+    Tj = oversample_j*T;
+    
+    ti = linspace(t0, tf, Ti);
+    tj = linspace(t0, tf, Tj);
+
+    Cpi = breastCp(ti);
+    
+
+    figure
+    hold all
+    plot(ti, Cpi*10, 'LineWidth', 5)
+    
+    for k_ep = logspace(log10(0.01), log10(1000), 20);
+        KTrans = k_ep;
+        
+        sj = zeros(1,Tj);
+        for i=1:Ti
+            signal_part = convolutionFromMapleVectorized(tj, k_ep, ti(i), oversample_i);
+            sj = sj + Cpi(i) * KTrans * signal_part;
+        end
+        plot(tj,sj)
+    end
+end
+
+%%
+function signal = convolutionInnerLoop(t, k_ep, t_0, samplingRate)
+    L = 1/samplingRate;
+    T = length(t);
+    
+    a = exp(k_ep*L);
+    b = 1/a - 2 + a;
+    
+    signal = zeros(t,1);
+    for j = 1:T
+        u = t(j) - t_0;
+        if u <= -L
+            s = 0;
+        elseif u <= 0 
+            s = exp(-k_ep*(L + u)) - 1 + k_ep*(u + L); 
+        elseif u <= L
+            s = exp(-k_ep*(L + u)) - 2*exp(-k_ep*u) + 1 + k_ep*(L - u);
+        else
+            s = exp(-k_ep*u) * b;
+        end
+        s = s * samplingRate / (k_ep * k_ep);
+        
+        signal(j) = s;
+    end
+end
+
+
+%%
 function s = convolutionFromMapleVectorized(t, k, t_0, oversamplingFactor)
     x = t - t_0;
     L = 1/oversamplingFactor;
@@ -168,9 +235,9 @@ function s = convolutionFromMapleVectorized(t, k, t_0, oversamplingFactor)
     
     a = exp(k*L);
     %s = exp(-k*x) * (1/a - 2 + a)
-    s((ind_1)) = exp(-k*(L + x(ind_1))) - 1 + k*(x(ind_1) + L); 
-    s((ind_2)) = exp(-k*(L + x(ind_2))) - 2*exp(-k*x(ind_2)) + 1 + k*(L - x(ind_2));
-    s((ind_3)) = exp(-k*x(ind_3)) * (1/a - 2 + a);
+    s(ind_1) = exp(-k*(L + x(ind_1))) - 1 + k*(x(ind_1) + L); 
+    s(ind_2) = exp(-k*(L + x(ind_2))) - 2*exp(-k*x(ind_2)) + 1 + k*(L - x(ind_2));
+    s(ind_3) = exp(-k*x(ind_3)) * (1/a - 2 + a);
 
     s = s * oversamplingFactor / (k * k);
     
