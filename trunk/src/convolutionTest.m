@@ -195,8 +195,66 @@ function signal = convolutionOuterLoop()
 %             sj = sj + Cpi(i) * KTrans * signal_part;
 %         end
 
-        signal = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i);
-        plot(tj, signal)
+        signal = dce_mri_mex(single(KTrans), single(k_ep), single(dt_i), int32(Ti), single(dt_j), int32(Tj), single(Cpi), single(oversample_i));
+        % plot(tj, signal)
+        plot(tj, signal(:))
+    end
+end
+
+%%
+function s = convolutionFromMapleVectorized(t, k, t_0, oversamplingFactor)
+    x = t - t_0;
+    L = 1/oversamplingFactor;
+    s = zeros(size(t));
+    
+    ind_1 = (x > -L  &  x <= 0);
+    ind_2 = (x >  0  &  x <= L);
+    ind_3 = (x > L);
+    
+    a = exp(k*L);
+    %s = exp(-k*x) * (1/a - 2 + a)
+    s(ind_1) = exp(-k*(L + x(ind_1))) - 1 + k*(x(ind_1) + L); 
+    s(ind_2) = exp(-k*(L + x(ind_2))) - 2*exp(-k*x(ind_2)) + 1 + k*(L - x(ind_2));
+    s(ind_3) = exp(-k*x(ind_3)) * (1/a - 2 + a);
+
+    s = s * oversamplingFactor / (k * k);
+    
+%     if x <= -L
+%         s = 0;
+%     else
+%         if x > L
+%             %s = exp(-k*(L + x)) - 2*exp(-k*x) + exp(-k*(-L + x));
+%             %s = exp(-k*x) * (exp(-k*L) - 2 + exp(k*L));
+%             a = exp(k*L);
+%             s = exp(-k*x) * (1/a - 2 + a);
+%             %s = exp(-k*x) * sinh(k*L/2)^2;
+%         elseif x <= 0
+%             s = exp(-k*(L + x)) - 1 + k*(x + L); 
+%         elseif x <= L
+%             s = exp(-k*(L + x)) - 2*exp(-k*x) + 1 + k*(L - x);
+%         end
+%         s = s * oversamplingFactor / (k * k);
+%     end
+end
+
+function s = convolutionFromMaple(t, k, t_0, oversamplingFactor)
+    x = t - t_0;
+    L = 1/oversamplingFactor;
+    if x <= -L
+        s = 0;
+    else
+        if x > L
+            %s = exp(-k*(L + x)) - 2*exp(-k*x) + exp(-k*(-L + x));
+            %s = exp(-k*x) * (exp(-k*L) - 2 + exp(k*L));
+            a = exp(k*L);
+            s = exp(-k*x) * (1/a - 2 + a);
+            %s = exp(-k*x) * sinh(k*L/2)^2;
+        elseif x <= 0
+            s = exp(-k*(L + x)) - 1 + k*(x + L); 
+        elseif x <= L
+            s = exp(-k*(L + x)) - 2*exp(-k*x) + 1 + k*(L - x);
+        end
+        s = s * oversamplingFactor / (k * k);
     end
 end
 
