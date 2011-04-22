@@ -8,30 +8,85 @@
 /* CUDA Includes */
 #include <cuda.h>
 #include <cutil.h>
+#include <math.h>
 
 /* Local Includes */
 #include "dce_mri_constants.h"
 
 extern "C" float
 host_compute(
-    float *kTrans, 
-    float *kEp, 
-    float *t0, 
+    float *KTrans, 
+    float *k_ep, 
+    float dt_i, 
+    int Ti, 
+    float dt_j, 
+    int Tj, 
+    float *Cpi, 
+    float samplingRate, 
     float *imgSeqR, 
     float *imgSeqI, 
     int dimX, 
     int dimY);
 
 __global__ void compute(
-    float *kTrans, 
-    float *kEp, 
-    float *t0, 
-    float *imgSeqR,
-    float *imgSeqI) {
-  // int tx = threadIdx.x;
+    float *KTrans, 
+    float *k_ep, 
+    float dt_i, 
+    int Ti, 
+    float dt_j, 
+    int Tj, 
+    float *Cpi, 
+    float samplingRate, 
+    float *imgSeqR, 
+    float *imgSeqI, 
+    int dimX, 
+    int dimY,
+    int threadsPerBlock) {
 
-  /* STUB FOR COMPUTATION */
+  /* Get our coordinate into the KTrans, k_ep, and t0 matrices */
+  int idx = blockIdx.x * threadsPerBlock + threadIdx.x;
 
+  /* Interval length */
+  float L = 1.0f / samplingRate;
+    
+  /* Common factors */
+  float my_k_ep = k_ep[idx];
+  float f = my_k_ep * L;
+  float a = exp(f);
+  float ai = 1.0f / a;
+  float b = ai - 2.0f + a;
+  float c = KTrans[idx] * samplingRate / (my_k_ep * my_k_ep);
+    
+  /* Compute the convolution */
+  int i, j;
+  for (i = 0; i < Ti; i++) {
+    /* Scale the input function (vector) for the convolution */
+    float ci = c * Cpi[i];
+    for (j = 0; j < Tj; j++) {
+      float tj = dt_j * j;
+      float ti = dt_i * i;
+      float u = tj - ti;
+
+      /* More common terms */
+      float g = my_k_ep * u;
+      float e = exp(-g);
+
+      /* Fake-branch */
+      float s = 0;
+      if (u <= -L) {
+        s = 0;
+      } else if (u <= 0) {
+        s = e * ai - 1 + f + g; 
+      } else if (u <= L) {
+        s = e * (ai - 2) + 1 + f - g;
+      } else {
+        s = e * b;
+      }
+
+      /* Accumulate (update time point j) */
+      imgSeqR[(dimX * dimY * j) + idx] = ci * s;
+    }
+  }
 }
 
 /*
@@ -41,29 +96,30 @@ __global__ void compute(
  * CUDA kernel. Its purpose is to setup the data and make the kernel call for the CUDA
  * computation, and then copy result data back out of the GPU.
  *
- * In our particular case, kTrans, kEp, and t0 are input parameters and
+ * In our particular case, KTrans, k_ep, ... are input parameters and
  * imgSeqR, imgSeqI are output parameters corresponding to the real and
  * imaginary parts of the computed values.
  */
 float host_compute(
-    float *kTrans, 
-    float *kEp, 
-    float *t0, 
+    float *KTrans, 
+    float *k_ep, 
+    float dt_i, 
+    int Ti, 
+    float dt_j, 
+    int Tj, 
+    float *Cpi, 
+    float samplingRate, 
     float *imgSeqR, 
     float *imgSeqI, 
     int dimX, 
     int dimY) {
 
-  /* Testing */
-  *imgSeqR = kTrans[0] + kEp[0] + t0[0]; 
-  *imgSeqI = kTrans[1] + kEp[1] + t0[1]; 
-
   // cudaEvent_t start_event, stop_event;
-  float cuda_elapsed_time;
+  // float cuda_elapsed_time;
 
-  float *d_kTrans;
-  float *d_kEp;
-  float *d_t0;
+  float *d_KTrans;
+  float *d_k_ep;
+  float *d_Cpi;
   float *d_imgSeqR;
   float *d_imgSeqI;
 
@@ -71,15 +127,15 @@ float host_compute(
   // CUDA_SAFE_CALL(cudaEventCreate(&stop_event));
 
   /* Cuda memory initialization */
-  cudaMalloc((void **) &d_kTrans, dimX * dimY * sizeof(float));
-  cudaMalloc((void **) &d_kEp, dimX * dimY * sizeof(float));
-  cudaMalloc((void **) &d_t0, dimX * dimY * sizeof(float));
-  cudaMalloc((void **) &d_imgSeqR, dimX * dimY * DIMENSION3 * sizeof(float));
-  cudaMalloc((void **) &d_imgSeqI, dimX * dimY * DIMENSION3 * sizeof(float));
+  cudaMalloc((void **) &d_KTrans, dimX * dimY * sizeof(float));
+  cudaMalloc((void **) &d_k_ep, dimX * dimY * sizeof(float));
+  cudaMalloc((void **) &d_Cpi, dimX * dimY * sizeof(float));
+  cudaMalloc((void **) &d_imgSeqR, dimX * dimY * Tj * sizeof(float));
+  cudaMalloc((void **) &d_imgSeqI, dimX * dimY * Tj * sizeof(float));
 
-  cudaMemcpy(d_kTrans, kTrans, dimX * dimY * sizeof(float), cudaMemcpyHostToDevice);
-  cudaMemcpy(d_kEp, kEp, dimX * dimY * sizeof(float), cudaMemcpyHostToDevice);
-  cudaMemcpy(d_t0, t0, dimX * dimY * sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_KTrans, KTrans, dimX * dimY * sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_k_ep, k_ep, dimX * dimY * sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_Cpi, Cpi, dimX * dimY * sizeof(float), cudaMemcpyHostToDevice);
 
   /* Start the timer */
   // cudaEventRecord(start_event, 0);
@@ -87,7 +143,20 @@ float host_compute(
   /* Call the kernel */
   dim3 dimGrid(1, 1, 1);
   dim3 dimBlock(1, 1, 1);
-  compute<<<dimGrid, dimBlock>>>(d_kTrans, d_kEp, d_t0, d_imgSeqR, d_imgSeqI);
+  compute<<<dimGrid, dimBlock>>>(
+      d_KTrans, 
+      d_k_ep, 
+      dt_i,
+      Ti,
+      dt_j,
+      Tj,
+      d_Cpi, 
+      samplingRate,
+      d_imgSeqR, 
+      d_imgSeqI, 
+      dimX, 
+      dimY,
+      1);
 
   /* Stop the timer */
   // cudaEventRecord(stop_event, 0);
@@ -96,8 +165,9 @@ float host_compute(
   // CUDA_SAFE_CALL(cudaEventElapsedTime(&cuda_elapsed_time, start_event, stop_event));
 
   /* Copy cuda memory back to device */
-  cudaMemcpy(imgSeqR, d_imgSeqR, dimX * dimY * DIMENSION3 * sizeof(float), cudaMemcpyDeviceToHost);
+  cudaMemcpy(imgSeqR, d_imgSeqR, dimX * dimY * Tj * sizeof(float), cudaMemcpyDeviceToHost);
   cudaMemcpy(imgSeqI, d_imgSeqI, dimX * dimY * DIMENSION3 * sizeof(float), cudaMemcpyDeviceToHost);
 
-  return cuda_elapsed_time;
+  //return cuda_elapsed_time;
+  return 0;
 }

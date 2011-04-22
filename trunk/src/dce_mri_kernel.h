@@ -19,9 +19,14 @@
  * imaginary parts of the computed values.
  */
 float host_compute(
-    float *kTrans, 
-    float *kEp, 
-    float *t0, 
+    float *KTrans, 
+    float *k_ep, 
+    float dt_i, 
+    int Ti, 
+    float dt_j, 
+    int Tj, 
+    float *Cpi, 
+    float samplingRate, 
     float *imgSeqR, 
     float *imgSeqI, 
     int dimX, 
