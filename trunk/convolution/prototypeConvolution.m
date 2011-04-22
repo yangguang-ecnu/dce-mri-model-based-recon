@@ -179,6 +179,8 @@ function signal = convolutionOuterLoop()
 
     Cpi = breastCp(ti);
     
+    dt_i = ti(2) - ti(1);
+    dt_j = tj(2) - tj(1);
 
     figure
     hold all
@@ -193,10 +195,61 @@ function signal = convolutionOuterLoop()
 %             sj = sj + Cpi(i) * KTrans * signal_part;
 %         end
 
-        signal = convolutionForC(KTrans, k_ep, ti, tj, Cpi, oversample_i);
+        %signal = convolutionForC(KTrans, k_ep, ti, tj, Cpi, oversample_i);
+        signal = convolutionForC_optimize_1(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i);
         plot(tj, signal)
     end
 end
+
+%%
+
+%%%%%%%%%%%%%%%%%%  C    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function signal = convolutionForC_optimize_1(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, samplingRate)
+    
+    % Interval length
+    L = 1/samplingRate;
+    
+    %Ti = numel(ti);
+    %Tj = numel(tj);
+
+    % Common factors
+    a = exp(k_ep*L);
+    b = 1/a - 2 + a;
+    c = KTrans * samplingRate / (k_ep * k_ep);
+    
+    % Scale the input function (vector) for the convolution
+    Ci = zeros(1,Ti);
+    for i=1:Ti
+        Ci(i) = c * Cpi(i);
+    end
+
+    % Compute the convolution
+    signal = zeros(1,Tj);
+    for i = 1:Ti
+        for j = 1:Tj
+            tj = dt_j * j;
+            ti = dt_i * i;
+            u = tj - ti;
+            if u <= -L
+                s = 0;
+            elseif u <= 0 
+                s = exp(-k_ep*(L + u)) - 1 + k_ep*(u + L); 
+            elseif u <= L
+                s = exp(-k_ep*(L + u)) - 2*exp(-k_ep*u) + 1 + k_ep*(L - u);
+            else
+                s = exp(-k_ep*u) * b;
+            end
+            signal(j) = signal(j) + Ci(i) * s;
+        end
+    end
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
 
 
 %%
