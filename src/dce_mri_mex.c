@@ -41,9 +41,14 @@
  *
  * In our specific case, we are expecting the following input arguments:
  *
- * kTrans - array of floats [2D, real valued]
- * kEp    - array of floats [2D, real valued]
- * t0     - array of floats [2D, real valued]
+ * KTrans       - array of floats [2D, real valued]
+ * k_ep         - array of floats [2D, real valued]
+ * dt_i         - float
+ * Ti           - int
+ * dt_j         - float
+ * Tj           - int
+ * Cpi          - vector of floats [2D, real valued]
+ * samplingRate - float
  *
  * and the following output arguments:
  *
@@ -52,8 +57,8 @@
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   /* Check for the correct number of input arguments */
-  if (nrhs != 3) {
-    mexPrintf("Wrong number of arguments, expecting ...(kTrans, kEp, t0)\n");
+  if (nrhs != 8) {
+    mexPrintf("Wrong number of arguments, expecting ...(kTrans, kEp, t0, samplingRate)\n");
     return;
   } 
 
@@ -64,22 +69,32 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } 
 
   /* Extract specific mxArray input structures */
-  const mxArray *mxKTrans = prhs[0];
-  const mxArray *mxKEp = prhs[1];
-  const mxArray *mxT0 = prhs[2];
+  const mxArray *mx_KTrans = prhs[0];
+  const mxArray *mx_k_ep = prhs[1];
+  const mxArray *mx_dt_i = prhs[2];
+  const mxArray *mx_Ti = prhs[2];
+  const mxArray *mx_dt_j = prhs[2];
+  const mxArray *mx_Tj = prhs[2];
+  const mxArray *mx_Cpi = prhs[2];
+  const mxArray *mx_samplingRate = prhs[3];
 
   /* Extract specific input data ptrs */
-  float *kTrans = (float *)mxGetPr(mxKTrans);
-  float *kEp = (float *)mxGetPr(mxKEp);
-  float *t0 = (float *)mxGetPr(mxT0);
+  float *KTrans = (float *)mxGetPr(mx_KTrans);
+  float *k_ep = (float *)mxGetPr(mx_k_ep);
+  float dt_i = *(float *)mxGetPr(mx_dt_i);
+  int Ti = *(int *)mxGetPr(mx_Ti);
+  float dt_j = *(float *)mxGetPr(mx_dt_j);
+  int Tj = *(int *)mxGetPr(mx_Tj);
+  float *Cpi = (float *)mxGetPr(mx_Cpi);
+  float samplingRate = *(float *)mxGetPr(mx_samplingRate);
 
   /* Extract other useful information from input */
-  const mwSize *kTransDims = mxGetDimensions(mxKTrans);
+  const mwSize *kTransDims = mxGetDimensions(mx_KTrans);
 
   /* Setup output matrix */
   mwSize ndim = 3;
   mwSize *dims = (mwSize *)mxMalloc(ndim * sizeof(mwSize));
-  dims[0] = kTransDims[0]; dims[1] = kTransDims[1]; dims[2] = DIMENSION3;
+  dims[0] = kTransDims[0]; dims[1] = kTransDims[1]; dims[2] = Tj;
   mxArray *mxImgSeq = mxCreateNumericArray(ndim, dims, mxSINGLE_CLASS, mxCOMPLEX);
 
   /* Extract specific output data ptrs */
@@ -87,7 +102,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   float *imgSeqI = (float *)mxGetPi(mxImgSeq);
 
   /* Call the CUDA kernel with the translated data */
-  host_compute(kTrans, kEp, t0, imgSeqR, imgSeqI, dims[0], dims[1]);
+  host_compute(
+      KTrans, 
+      k_ep, 
+      dt_i, 
+      Ti, 
+      dt_j, 
+      Tj, 
+      Cpi, 
+      samplingRate, 
+      imgSeqR, 
+      imgSeqI, 
+      dims[0], 
+      dims[1]);
 
   /* Free memory */
   mxFree(dims);

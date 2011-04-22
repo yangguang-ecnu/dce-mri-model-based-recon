@@ -9,5 +9,3 @@
 
 #define SIZE 16
 #define BLOCKSIZE 4
-
-#define DIMENSION3 2
