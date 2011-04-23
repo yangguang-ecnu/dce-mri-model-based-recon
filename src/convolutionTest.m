@@ -238,7 +238,7 @@ function signal = convolutionOuterLoop8x4()
     % Init time variables
     t0 = 0; 
     tf = 5;
-    T = 50;
+    T  = 50;
 
     oversample_i = 8;
     oversample_j = 2;
@@ -265,6 +265,8 @@ function signal = convolutionOuterLoop8x4()
     Tj      = int32(Tj); 
     Cpi     = single(Cpi);
     oversample_i = single(oversample_i);
+    
+    ti = single(ti);
 
     
     % Scalar version of mex-wrapper call
@@ -272,9 +274,31 @@ function signal = convolutionOuterLoop8x4()
     for x = 1:X
         for y = 1:Y
             signal_1(x,y,:) = dce_mri_mex( KTrans(x,y), k_ep(x,y), dt_i, Ti, dt_j, Tj, Cpi, oversample_i );
-            %signal_1(x,y,:) = s;
         end
     end
+
+    signal_0 = zeros(X,Y,Tj,'single');
+	tj_vec = single(0:Tj-1) * dt_j; 
+    tj_vec = permute(tj_vec, [1 3 2]);  % Make it 1x1xTj
+    for x = 1:X
+        for y = 1:Y
+            sj = zeros(1,1,Tj,'single');
+            for i = 1:Ti
+                %si = si + Cpj(j) * KTrans * convolutionFromMapleVectorized(ti, k_ep, tj(j), oversample_j);
+                sj = sj + Cpi(i) * KTrans(x,y) * convolutionFromMapleVectorized(tj_vec, k_ep(x,y), ti(i), oversample_i);
+                %signal_0(x,y,:) = dce_mri_mex( KTrans(x,y), k_ep(x,y), dt_i, Ti, dt_j, Tj, Cpi, oversample_i );
+            end
+            signal_0(x,y,:) = sj;
+        end
+    end
+    
+    figure
+    hold all
+    plot(ti, Cpi, 'LineWidth', 5)
+   
+    signal_transposed = permute(signal_0, [3 1 2]);
+    plot(tj, signal_transposed(:,:))
+    title('Reference curves using matlab prototype')
     
     
     % Matrix version of mex-wrapper call
@@ -284,16 +308,24 @@ function signal = convolutionOuterLoop8x4()
     
     signal_1 = real(signal_1);
     signal_2 = real(signal_2);
-    signal = signal_2;  % Final return value of this function
+    
+    signal = signal_0;  % Final return value of this function
 
     
     % Compare matrix versus scalar calls
     RMSE  = norm(signal_1(:) - signal_2(:)) / sqrt(X*Y*double(Tj));
-    rRMSE = RMSE / norm(signal_1(:));
+    nRMSE = RMSE / norm(signal_1(:));
     
-    fprintf(' RMSE: %g\n',  RMSE)
-    fprintf('rRMSE: %g\n', rRMSE)
+    fprintf('Matrix versus scalar:  RMSE: %g\n',  RMSE)
+    fprintf('Matrix versus scalar: nRMSE: %g\n', nRMSE)
     
+
+    % Compare cuda versus matlab
+    RMSE  = norm(signal_1(:) - signal_0(:)) / sqrt(X*Y*double(Tj));
+    nRMSE = RMSE / norm(signal_0(:));
+    
+    fprintf('Cuda versus matlab:  RMSE: %g\n',  RMSE)
+    fprintf('Cuda versus matlab: nRMSE: %g\n', nRMSE)
     
 
     % Show curves
