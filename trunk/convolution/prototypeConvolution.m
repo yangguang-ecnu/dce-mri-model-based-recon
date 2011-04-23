@@ -60,12 +60,51 @@ function prototypeConvolution(~)
 
 end
 
+function step_test
+    X = 100;
+    Y = 50;
+    
+    C = zeros(X,Y);
+    
+    x0 =   0; y0 =  0;
+    xf = X-1; yf = 35;
+    dx = xf - x0;
+    dy = yf - y0;
+    
+    %xt = 0; yt = 0;
+    xt = floor(dx/2); yt = 0;%floor(dy/2);
+    %xt = 0; yt = floor(dy/2);
+    y = y0;
+    for x = x0:xf
+        C(x+1,y+1) = 1;
+        
+        yt = yt + dy;
+        if yt > xt
+            xt = xt + dx;
+            y = y + 1;
+        end
+    end
+    
+    figure
+    imagesc(C','XData',[0 X-1]-0/2,'YData',[0 Y-1]-0/2), axis xy
+    
+    set(gca,'XTick', (0:X-1)-1/2)
+    set(gca,'YTick', (0:Y-1)-1/2)
+    set(gca,'XGrid','on')
+    set(gca,'YGrid','on')
+    set(gca,'XColor',[0.5,0.6,0.8])
+    set(gca,'YColor',[0.5,0.6,0.8])
+    set(gca,'GridLineStyle', '-')    
+    '';
+end
 
 %% Demo
 %
 function demo
     
     close all
+    
+    step_test
 
     t = linspace(0,5,1000);
     Cp = breastCp(t);
@@ -131,7 +170,7 @@ function demo
     ti_old = ti;
 
 
-    oversample_i = 2;
+    oversample_i = 4;
     oversample_j = 8;
     ti = linspace(ti_old(1),ti_old(end),oversample_i*length(ti_old));
     tj = linspace(ti_old(1),ti_old(end),oversample_j*length(ti_old));
@@ -168,8 +207,8 @@ function convolutionDemo()
     tf = 5;
     T = 50;
 
-    oversample_i = 8;
-    oversample_j = 2;
+    oversample_i = 4;
+    oversample_j = 8;
     
     Ti = oversample_i*T;
     Tj = oversample_j*T;
@@ -192,7 +231,8 @@ function convolutionDemo()
     hold all
     plot(ti, Cpi*10, 'LineWidth', 5)
     
-    for k_ep = logspace(log10(0.01), log10(1000), 20);
+    %for k_ep = logspace(log10(0.01), log10(1000), 20);
+    for k_ep = logspace(log10(0.01), log10(1000), 3);
         KTrans = k_ep;
 %         
 %         sj = zeros(1,Tj);
@@ -202,6 +242,7 @@ function convolutionDemo()
 %         end
 
         %signal = convolutionForC(KTrans, k_ep, ti, tj, Cpi, oversample_i);
+        %signal = convolutionForC_optimize_2(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i);
         signal = convolutionForC_optimize_2(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i);
         plot(tj, signal)
     end
@@ -209,8 +250,205 @@ end
 %%
 
 
-
 %%%%%%%%%%%%%%%%%%  C    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function signal = convolutionForC_optimize_3(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, samplingRate)
+    
+    % Interval length
+    L = 1/samplingRate;
+
+    % Common subexpressions
+    f = k_ep*L;
+    a = exp(f);
+    ai= 1/a;
+    b = ai - 2 + a;
+    c = KTrans * samplingRate / (k_ep * k_ep);
+    
+    % Scale the input function (vector) for the convolution
+%     Ci = zeros(1,Ti);
+%     for i=1:Ti
+%         Ci(i) = c * Cpi(i);
+%     end
+    dh_i = dt_i/dt_j;
+    %fn   = floor(-L/dt_j);
+    %fp   = floor( L/dt_j);     % Not same as -floor(L/dt_j)
+
+    % Do not use round() in cuda. It maps to an 8-instruction sequence.
+    % Use rint() instead since it maps to a 1-instruction sequence.
+    
+    L_dt    = L / dt_j;
+    L_dt_r  = round(L_dt * 1e9) * 1e-9;  % In case L is a multiple of dt_j
+
+    j00 = 0;
+    j01 = ceil(-L_dt_r);
+    j02 = 0;
+    j03 = ceil( L_dt_r);
+    j04 = Tj;
+
+%     x0 = -dx;
+%     y0 = -dy;
+    
+    [dy, dx] = rat(L_dt, 1e-9);
+    x0 = 0; y0 = 0;
+    x = x0; y = y0;
+    
+
+    % dy < dx if L_dt < 1
+    x = x + dx;
+    y = y + dy;
+
+    error 'implement me'
+    
+    
+    z0 = -L_dt_r;
+    dz = dt_i;
+    
+    z = z0;
+    z = z + dz;
+    
+    
+    
+    
+    % Compute the convolution
+    signal = zeros(1,Tj);
+    hi = 0 + Ti*eps(dh_i);
+    ti = 0;
+    for i = 0:Ti-1
+        Ci = c * Cpi(i+1);
+        
+        ti2 = dt_i * i;
+        %ti
+
+
+%         s1 = 0;
+%         s2 = e * ai - 1 + f + g;
+%         s3 = e * (ai - 2) + 1 + f - g;
+%         s4 = e * b;
+
+%         j0 = 0;
+%         j1 = floor(hi - L_dt);
+%         j2 = floor(hi);
+%         j3 = floor(hi + L_dt);
+%         j4 = Tj;
+        
+        j0 = 0;
+        j1 = ceil((ti - L)/dt_j);
+        j2 = ceil((ti    )/dt_j);
+        j3 = ceil((ti + L)/dt_j);
+        j4 = Tj;
+        
+        
+        
+%         j1 = max(j0, min(j4, j1)); 
+%         j2 = max(j0, min(j4, j2)); 
+%         j3 = max(j0, min(j4, j3)); 
+        
+        % Branch 2
+        % s2 = e * ai - 1 + f + g;
+        tj  = dt_j * j1;
+        u   = tj - ti;
+        g   = k_ep*u;
+        dg  = k_ep*dt_j;
+        dgC = dg*Ci;
+        e   = exp(-g);
+        me  = exp(-dg);
+        
+        c0 = (-1 + f)*Ci + g*Ci;
+        c1 = ai * Ci;
+        for j = j1:j2-1
+            %e = exp(-g);
+            %if j > 0, signal(j+1) = signal(j+1) + c1*e + c0; end
+            %g = g + dg;
+            
+            if j >= 0 && u > -L
+                tj = dt_j * j;
+                u = tj - ti;
+                g = k_ep*u;
+                E = exp(-g);
+                s2 = (E * ai - 1 + f + g)*Ci;
+                
+                %c0 = (-1 + f)*Ci + g*Ci;
+                
+                %s2 = Ci * (exp(-g-f) - 1 + f + g);
+                s2_alt = c1*e + c0;
+                
+                signal(j+1) = signal(j+1) + s2;
+                
+                %if abs(s2 - s2_alt) > 1e2
+                %if abs(s2 - s2_alt) > 1e0
+                if abs(s2 - s2_alt) > 1e-2  ||  u < -L
+                    % tj - ti == u >= -L
+                    % tj == ti + u >= ti - L
+                    % j*dt_j == ti + u >= ti - L
+                    % j == (ti + u)/dt_j >= (ti - L)/dt_j
+                    % --> j1 == ceil(ti - L)/dt_j
+                    '';
+                end
+            end
+            c0 = c0 + dgC;
+            e = e * me;
+        end
+        
+        % Branch 3
+        % s3 = e * (ai - 2) + 1 + f - g;
+        tj  = dt_j * j2;
+        u   = tj - ti;
+        g   = k_ep*u;
+        %dg  = k_ep*dt_j;
+        e   = exp(-g);
+        %me  = exp(-dg);
+        %c0 = (-1 + f)*Ci + g*Ci;
+        %c1 = ai * Ci;
+        
+        % s3 = e * (ai - 2) + 1 + f - g;
+        c0  = (1 + f - g) * Ci;
+        c1  = (ai - 2) * Ci;
+        for j = j2:j3-1
+            if j < length(signal)
+                signal(j+1) = signal(j+1) + c1*e + c0;
+            end
+            c0 = c0 - dgC;
+            e = e * me;
+        end
+
+        
+        % Branch 4
+        % s4 = e * b;
+        %tj  = dt_j * j2;
+%         tj  = dt_j * j3;
+%         u   = tj - ti;
+%         g   = k_ep*u;
+        %dg  = k_ep*dt_j;
+        %e   = exp(-g);
+%         e   = exp(-g);
+%         me  = exp(-dg);
+        
+%         sj3 = signal(min(end,j3+1));
+
+
+        c0  = 0;
+        c1  = b * Ci;
+        for j = j3:j4-1
+            if j < length(signal)
+                signal(j+1) = signal(j+1) + c1*e + c0;
+            end
+            e = e * me;
+        end
+        
+%         j3_float = (ti + L)/dt_j;
+%         dj = j3 - j3_float;
+%         signal(min(end,j3+1)) = sj3 + c1*((0)*exp(-g) + (1-dj)*exp(-g-dg));
+        
+        
+        ti - ti2
+        ti = ti + dt_i;
+%         hi = hi + dh_i;
+    end
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+
+
+
 function signal = convolutionForC_optimize_2(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, samplingRate)
     
     % Interval length
@@ -242,6 +480,8 @@ function signal = convolutionForC_optimize_2(KTrans, k_ep, dt_i, Ti, dt_j, Tj, C
     for i = 0:Ti-1
         Ci = c * Cpi(i+1);
         %ti = dt_i * i;
+        
+        % Shouldn't these increment at the end of the for loop?
         ti = ti + dt_i;
         hi = hi + dh_i;
         
@@ -318,7 +558,8 @@ function signal = convolutionForC_optimize_2(KTrans, k_ep, dt_i, Ti, dt_j, Tj, C
                 fprintf(['Warning: expected branch %d, was really in %d: ' ...
                 'delta=%d, j = %d, (%d,%d,%d,%d,%d), u=%g, L=%g\n'], ...
                 otherBranch, branch,branch-otherBranch,j,j0,j1,j2,j3,j4,u,L);
-                [s1, s2, s3, s4]./s
+                si = [s1, s2, s3, s4];%./s;
+                si(otherBranch)-si(branch)
             '';
             end
             
@@ -327,7 +568,6 @@ function signal = convolutionForC_optimize_2(KTrans, k_ep, dt_i, Ti, dt_j, Tj, C
         end
     end
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
 
 
