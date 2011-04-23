@@ -145,9 +145,12 @@ float host_compute(
   /* Start the timer */
   // cudaEventRecord(start_event, 0);
 
-  /* Call the kernel */
+  /* Setup thread/block breakdown, we want dimX * dimY threads */
+  int numThreads = dimX * dimY;
   dim3 dimGrid(1, 1, 1);
-  dim3 dimBlock(1, 1, 1);
+  dim3 dimBlock(numThreads, 1, 1);
+
+  /* Call the kernel */
   compute<<<dimGrid, dimBlock>>>(
       d_KTrans, 
       d_k_ep, 
@@ -161,7 +164,7 @@ float host_compute(
       d_imgSeqI, 
       dimX, 
       dimY,
-      1);
+      numThreads);
 
   /* Stop the timer */
   // cudaEventRecord(stop_event, 0);
