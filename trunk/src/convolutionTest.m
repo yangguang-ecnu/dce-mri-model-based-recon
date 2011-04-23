@@ -156,7 +156,7 @@ function demo
     
     
     
-    convolutionOuterLoop
+    convolutionOuterLoop;
 
     '';
 end
@@ -197,7 +197,7 @@ function signal = convolutionOuterLoop()
 
         signal = dce_mri_mex(single(KTrans), single(k_ep), single(dt_i), int32(Ti), single(dt_j), int32(Tj), single(Cpi), single(oversample_i));
         % plot(tj, signal)
-        plot(tj, signal(:))
+        plot(tj, real(signal(:)))
     end
 end
 
