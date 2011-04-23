@@ -60,6 +60,13 @@ function prototypeConvolution(~)
 
 end
 
+%% Shortened Demo
+%
+function shortenedDemo
+    %convolutionOuterLoop;
+    convolutionOuterLoop8x4;
+end
+
 
 %% Demo
 %
@@ -155,8 +162,11 @@ function demo
     %figure, plot(ti,si)
     
     
+    % Moved to shortenedDemo
+    %convolutionOuterLoop;
+    %convolutionOuterLoop4x8;
     
-    convolutionOuterLoop;
+    shortenedDemo;
 
     '';
 end
@@ -199,6 +209,116 @@ function signal = convolutionOuterLoop()
         % plot(tj, signal)
         plot(tj, real(signal(:)))
     end
+end
+
+
+%%
+function signal = convolutionOuterLoop8x4()
+    % Image dimensions
+    X = 8;
+    Y = 4;
+
+    % Initialize KTrans and k_ep to some arbitrary values
+    k_ep    = zeros(X,Y,'single');
+    KTrans  = zeros(X,Y,'single');
+    for x = 0:X-1
+        for y = 0:Y-1
+            u = x/(X + eps);
+            v = y/(Y + eps);
+            
+            w = 1/((1 - u)*(1 - v))^2;
+            w = w * 1e-1;
+            
+            k_ep(x+1,y+1)   = w;
+            KTrans(x+1,y+1) = w/10;
+        end
+    end
+
+    
+    % Init time variables
+    t0 = 0; 
+    tf = 5;
+    T = 50;
+
+    oversample_i = 8;
+    oversample_j = 2;
+    
+    Ti = oversample_i*T;
+    Tj = oversample_j*T;
+    
+    ti = linspace(t0, tf, Ti);
+    tj = linspace(t0, tf, Tj);
+    
+    dt_i = ti(2) - ti(1);
+    dt_j = tj(2) - tj(1);
+
+    % Init Cpi vector
+    Cpi = breastCp(ti);
+    
+    
+    % Convert to 32-bit floats for everything inputted into dce_mri_mex()
+    KTrans  = single(KTrans);
+    k_ep    = single(k_ep);
+    dt_i    = single(dt_i);
+    Ti      = int32(Ti);
+    dt_j    = single(dt_j);
+    Tj      = int32(Tj); 
+    Cpi     = single(Cpi);
+    oversample_i = single(oversample_i);
+
+    
+    % Scalar version of mex-wrapper call
+    signal_1 = zeros(X,Y,Tj,'single');
+    for x = 1:X
+        for y = 1:Y
+            signal_1(x,y,:) = dce_mri_mex( KTrans(x,y), k_ep(x,y), dt_i, Ti, dt_j, Tj, Cpi, oversample_i );
+            %signal_1(x,y,:) = s;
+        end
+    end
+    
+    
+    % Matrix version of mex-wrapper call
+    %signal_2 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i); % (Not implemented yet)
+    signal_2 = signal_1 + randn(X,Y,Tj)*1e-3;  % Fake output
+
+    
+    signal_1 = real(signal_1);
+    signal_2 = real(signal_2);
+    signal = signal_2;  % Final return value of this function
+
+    
+    % Compare matrix versus scalar calls
+    RMSE  = norm(signal_1(:) - signal_2(:)) / sqrt(X*Y*double(Tj));
+    rRMSE = RMSE / norm(signal_1(:));
+    
+    fprintf(' RMSE: %g\n',  RMSE)
+    fprintf('rRMSE: %g\n', rRMSE)
+    
+    
+
+    % Show curves
+    figure
+    hold all
+    plot(ti, Cpi, 'LineWidth', 5)
+   
+    signal_transposed = permute(signal, [3 1 2]);
+    plot(tj, signal_transposed(:,:))
+    
+    
+    % Show reconstructed time series of images (movie)
+    figure
+    lgsignal = log10(abs(signal));
+    crange = [-2, max(lgsignal(:))];
+    for t = 1:Tj
+        imagesc(lgsignal(:,:,t)', crange)
+        axis image xy
+        colorbar
+        title(['t = ' num2str(t)])
+        drawnow
+        pause(1/60)
+    end 
+    
+    
 end
 
 %%
