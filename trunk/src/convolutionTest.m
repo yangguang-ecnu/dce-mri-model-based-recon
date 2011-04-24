@@ -215,8 +215,8 @@ end
 %%
 function signal = convolutionOuterLoop8x4()
     % Image dimensions
-    X = 8;
-    Y = 4;
+    X = 16;
+    Y = 16;
 
     % Initialize KTrans and k_ep to some arbitrary values
     k_ep    = zeros(X,Y,'single');
@@ -233,7 +233,26 @@ function signal = convolutionOuterLoop8x4()
             KTrans(x+1,y+1) = w/10;
         end
     end
+    
+    [mX,mY] = meshgrid(linspace(-3,3,X),linspace(-3,3,Y)); Z = peaks(mX,mY); 
+    %Z = Z.^2;
+    %Z = Z - min(Z(:)) + 1e-6;
+    %Z = Z - getQuantile(Z(:), 0.05);
+    %Z = max(Z, 1e-4);
+    
+    b = 1; c = 4; f = @(x) 1/b * x./(1 + (x*c-c).^2); %plot(x, f(x))
+    Z = f(Z);
+    Z = Z * 10;
+    Z = max(Z, 1e-4);
+    
+    %figure, imagesc(Z'), axis image; colorbar
+    
+    k_ep = Z;
+    KTrans = Z/10;
 
+    
+    figure, imagesc(Z), axis image; colorbar, title('k_ep')
+    
     
     % Init time variables
     t0 = 0; 
@@ -267,19 +286,15 @@ function signal = convolutionOuterLoop8x4()
     oversample_i = single(oversample_i);
     
     ti = single(ti);
-
+    tj = single(tj);
     
-    % Scalar version of mex-wrapper call
-    signal_1 = zeros(X,Y,Tj,'single');
-    for x = 1:X
-        for y = 1:Y
-            signal_1(x,y,:) = dce_mri_mex( KTrans(x,y), k_ep(x,y), dt_i, Ti, dt_j, Tj, Cpi, oversample_i );
-        end
-    end
+    fprintf('Beginning the timings\n')
 
+    % Reference implementation
     signal_0 = zeros(X,Y,Tj,'single');
 	tj_vec = single(0:Tj-1) * dt_j; 
     tj_vec = permute(tj_vec, [1 3 2]);  % Make it 1x1xTj
+    tic
     for x = 1:X
         for y = 1:Y
             sj = zeros(1,1,Tj,'single');
@@ -291,25 +306,34 @@ function signal = convolutionOuterLoop8x4()
             signal_0(x,y,:) = sj;
         end
     end
+    fprintf('Reference implementation (host): '), toc
+
     
-    figure
-    hold all
-    plot(ti, Cpi, 'LineWidth', 5)
-   
-    signal_transposed = permute(signal_0, [3 1 2]);
-    plot(tj, signal_transposed(:,:))
-    title('Reference curves using matlab prototype')
+    % Scalar version of mex-wrapper call
+    signal_1 = zeros(X,Y,Tj,'single');
+    tic
+    for x = 1:X
+        for y = 1:Y
+            signal_1(x,y,:) = dce_mri_mex( KTrans(x,y), k_ep(x,y), dt_i, Ti, dt_j, Tj, Cpi, oversample_i );
+        end
+    end
+    fprintf('Scalar version of mex-wrapper call: '), toc
+
+    
+    
     
     
     % Matrix version of mex-wrapper call
-    %signal_2 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i); % (Not implemented yet)
-    signal_2 = signal_1 + randn(X,Y,Tj)*1e-3;  % Fake output
+    tic
+    signal_2 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i);
+    fprintf('Matrix version of mex-wrapper call: '), toc
+    %signal_2 = signal_1 + randn(X,Y,Tj)*1e-3;  % Fake output
 
     
     signal_1 = real(signal_1);
     signal_2 = real(signal_2);
     
-    signal = signal_0;  % Final return value of this function
+    signal = signal_2;  % Final return value of this function
 
     
     % Compare matrix versus scalar calls
@@ -321,7 +345,7 @@ function signal = convolutionOuterLoop8x4()
     
 
     % Compare cuda versus matlab
-    RMSE  = norm(signal_1(:) - signal_0(:)) / sqrt(X*Y*double(Tj));
+    RMSE  = norm(signal_2(:) - signal_0(:)) / sqrt(X*Y*double(Tj));
     nRMSE = RMSE / norm(signal_0(:));
     
     fprintf('Cuda versus matlab:  RMSE: %g\n',  RMSE)
@@ -329,18 +353,29 @@ function signal = convolutionOuterLoop8x4()
     
 
     % Show curves
-    figure
-    hold all
-    plot(ti, Cpi, 'LineWidth', 5)
-   
-    signal_transposed = permute(signal, [3 1 2]);
+
+    figure, hold all; plot(ti, Cpi, 'LineWidth', 5)
+    signal_transposed = permute(signal_0, [3 1 2]);
     plot(tj, signal_transposed(:,:))
+    title('Reference curves using matlab prototype (GPU)')
+        
+    figure, hold all; plot(ti, Cpi, 'LineWidth', 5)   
+    signal_transposed = permute(signal_2, [3 1 2]);
+    plot(tj, signal_transposed(:,:))
+    title('Matrix version kernel code output (GPU)')
+
+    figure, 
+    signal_transposed = permute(signal_2 - signal_0, [3 1 2]);
+    plot(tj, signal_transposed(:,:))
+    title('Error difference time curves (GPU vs CPU)')
     
     
     % Show reconstructed time series of images (movie)
     figure
-    lgsignal = log10(abs(signal));
-    crange = [-2, max(lgsignal(:))];
+%     lgsignal = log10(abs(signal));
+%     crange = [-2, max(lgsignal(:))];
+    lgsignal = ((signal));
+    crange = [0, max(lgsignal(:))];
     for t = 1:Tj
         imagesc(lgsignal(:,:,t)', crange)
         axis image xy
@@ -350,7 +385,53 @@ function signal = convolutionOuterLoop8x4()
         pause(1/60)
     end 
     
+%     [mX,mY] = meshgrid(1:X,1:Y);
+%     Z = peaks(mX,mY);
+
     
+	aspectRatio = 1.33/1;
+    T0 = 10;     Tf = ceil(single(Tj)/2);
+
+    nT = Tf - T0 + 1;
+    % Tx / Ty <= 2.5
+    %   Ty >= Tx / 2.5
+    % Tx * Ty >= nT
+    %   Tx >= nT / Ty
+    % Ty >= Tx / 2.5 >= nT / (2.5 * Ty)
+    %   Ty^2 >= nT / 2.5
+    %   Ty >= sqrt(nT/2.5)
+    %   Tx >= nT / Ty
+    
+    
+    %nT = 293; aspectRatio = 3/1; Ty = round(sqrt(nT/aspectRatio)); Tx = round((nT/Ty)); [Tx Ty Tx*Ty Ty*aspectRatio Tx/Ty]
+    Ty = round(sqrt(nT/aspectRatio)); 
+    Tx = round((nT/Ty)); 
+    Tf = T0 + Tx*Ty - 1;
+    %[Tx Ty Tx*Ty Ty*aspectRatio Tx/Ty]
+
+    sampling = double(signal(:,:,T0:Tf));
+    a = 0.05;
+    p = [a/2, 1-a/2];
+    range = getQuantile(sampling(:), p);
+
+
+    %figure, plot(linspace(0,1,ns),s, p, range, 'o', 'MarkerSize', 14)
+    
+    sampling = single(mat2gray(sampling, range));
+    figure, montage(permute(sampling,[2 1 4 3]), 'size', [Ty Tx]), colormap(jet)
+    figure, montage(permute(sampling,[2 1 4 3]), 'size', [Ty Tx]), colormap(bone)
+    
+    figure, imagesc(k_ep'), axis image; colorbar
+end
+
+%%
+function q = getQuantile(x, p)
+    s = sort(x(:,:));
+    ns = size(s,1);
+    ind = min(ns, 1+max(0, floor(ns * p(:)')));
+    q = s(ind,:);
+    
+    % getQuantile([sampling(:), 2*sampling(:)],[a/2 0.25 0.5 0.75 1-a/2])
 end
 
 %%
