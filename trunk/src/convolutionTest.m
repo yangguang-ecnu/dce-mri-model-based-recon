@@ -215,8 +215,8 @@ end
 %%
 function signal = convolutionOuterLoop8x4()
     % Image dimensions
-    X = 16;
-    Y = 16;
+    X = 4;
+    Y = 4;
 
     % Initialize KTrans and k_ep to some arbitrary values
     k_ep    = zeros(X,Y,'single');
@@ -265,11 +265,17 @@ function signal = convolutionOuterLoop8x4()
     Ti = oversample_i*T;
     Tj = oversample_j*T;
     
-    ti = linspace(t0, tf, Ti);
-    tj = linspace(t0, tf, Tj);
+    dt_i = (tf - t0) / Ti;
+    dt_j = (tf - t0) / Tj;
     
-    dt_i = ti(2) - ti(1);
-    dt_j = tj(2) - tj(1);
+    %ti = linspace(t0, tf, Ti);
+    %tj = linspace(t0, tf, Tj);
+    ti = (0:Ti-1) * dt_i;
+    tj = (0:Tj-1) * dt_j;
+%     tj = linspace(t0, tf, Tj);
+    
+    %dt_i = ti(2) - ti(1);
+    %dt_j = tj(2) - tj(1);
 
     % Init Cpi vector
     Cpi = breastCp(ti);
@@ -357,7 +363,7 @@ function signal = convolutionOuterLoop8x4()
     figure, hold all; plot(ti, Cpi, 'LineWidth', 5)
     signal_transposed = permute(signal_0, [3 1 2]);
     plot(tj, signal_transposed(:,:))
-    title('Reference curves using matlab prototype (GPU)')
+    title('Reference curves using matlab prototype (CPU)')
         
     figure, hold all; plot(ti, Cpi, 'LineWidth', 5)   
     signal_transposed = permute(signal_2, [3 1 2]);
