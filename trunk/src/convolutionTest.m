@@ -215,10 +215,10 @@ end
 %%
 function signal = convolutionOuterLoop8x4()
     % Image dimensions
-%     X = 26;
-%     Y = 26;
-    X = 8;
-    Y = 8;
+    X = 64;
+    Y = 64;
+%     X = 8;
+%     Y = 8;
 
     % Initialize KTrans and k_ep to some arbitrary values
     k_ep    = zeros(X,Y,'single');
@@ -317,15 +317,15 @@ function signal = convolutionOuterLoop8x4()
     fprintf('Reference implementation (host): '), toc
 
     
-    % Scalar version of mex-wrapper call
-    signal_1 = zeros(X,Y,Tj,'single');
-    tic
-    for x = 1:X
-        for y = 1:Y
-            signal_1(x,y,:) = dce_mri_mex( KTrans(x,y), k_ep(x,y), dt_i, Ti, dt_j, Tj, Cpi, oversample_i );
-        end
-    end
-    fprintf('Scalar version of mex-wrapper call: '), toc
+%     % Scalar version of mex-wrapper call
+%     signal_1 = zeros(X,Y,Tj,'single');
+%     tic
+%     for x = 1:X
+%         for y = 1:Y
+%             signal_1(x,y,:) = dce_mri_mex( KTrans(x,y), k_ep(x,y), dt_i, Ti, dt_j, Tj, Cpi, oversample_i );
+%         end
+%     end
+%     fprintf('Scalar version of mex-wrapper call: '), toc
 
     
     
@@ -338,18 +338,18 @@ function signal = convolutionOuterLoop8x4()
     %signal_2 = signal_1 + randn(X,Y,Tj)*1e-3;  % Fake output
 
     
-    signal_1 = real(signal_1);
+%     signal_1 = real(signal_1);
     signal_2 = real(signal_2);
     
     signal = signal_2;  % Final return value of this function
 
-    
-    % Compare matrix versus scalar calls
-    RMSE  = norm(signal_1(:) - signal_2(:)) / sqrt(X*Y*double(Tj));
-    nRMSE = RMSE / norm(signal_1(:));
-    
-    fprintf('Matrix versus scalar:  RMSE: %g\n',  RMSE)
-    fprintf('Matrix versus scalar: nRMSE: %g\n', nRMSE)
+%     
+%     % Compare matrix versus scalar calls
+%     RMSE  = norm(signal_1(:) - signal_2(:)) / sqrt(X*Y*double(Tj));
+%     nRMSE = RMSE / norm(signal_1(:));
+%     
+%     fprintf('Matrix versus scalar:  RMSE: %g\n',  RMSE)
+%     fprintf('Matrix versus scalar: nRMSE: %g\n', nRMSE)
     
 
     % Compare cuda versus matlab
