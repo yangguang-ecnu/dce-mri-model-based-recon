@@ -39,12 +39,14 @@ __global__ void compute(
     float samplingRate, 
     float *imgSeqR, 
     float *imgSeqI, 
-    int dimX, 
-    int dimY,
+    int dimXY, 
     int threadsPerBlock) {
 
   /* Get our coordinate into the KTrans, k_ep, and t0 matrices */
   int idx = blockIdx.x * threadsPerBlock + threadIdx.x;
+
+  /* Bail early if we are an out-of-bounds thread */
+  if (idx >= dimXY) { return; }
 
   /* Interval length */
   float L = 1.0f / samplingRate;
@@ -61,7 +63,7 @@ __global__ void compute(
   int i, j;
 
   for (j = 0; j < Tj; j++) {
-    imgSeqR[(dimX * dimY * j) + idx] = 0;
+    imgSeqR[(dimXY * j) + idx] = 0;
   }
 
   for (i = 0; i < Ti; i++) {
@@ -76,7 +78,7 @@ __global__ void compute(
       float g = my_k_ep * u;
       float e = exp(-g);
 
-      /* Fake-branch */
+      /* Fake-branch (all threads take same branch) */
       float s = 0;
       if (u <= -L) {
         s = 0;
@@ -89,7 +91,8 @@ __global__ void compute(
       }
 
       /* Accumulate (update time point j) */
-      imgSeqR[(dimX * dimY * j) + idx] += ci * s;
+      /* This should be shared memory and tiled to really push speed */
+      imgSeqR[(dimXY * j) + idx] += ci * s;
     }
   }
 }
@@ -146,9 +149,11 @@ float host_compute(
   // cudaEventRecord(start_event, 0);
 
   /* Setup thread/block breakdown, we want dimX * dimY threads */
-  int numThreads = dimX * dimY;
-  dim3 dimGrid(1, 1, 1);
-  dim3 dimBlock(numThreads, 1, 1);
+  int dimXY = dimX * dimY;
+  int numBlocks = CEIL_DIV(dimXY, MAX_THREADS_PER_BLOCK);
+  int threadsPerBlock = (numBlocks == 1 ? dimXY : MAX_THREADS_PER_BLOCK);
+  dim3 dimGrid(numBlocks, 1, 1);
+  dim3 dimBlock(threadsPerBlock, 1, 1);
 
   /* Call the kernel */
   compute<<<dimGrid, dimBlock>>>(
@@ -162,9 +167,8 @@ float host_compute(
       samplingRate,
       d_imgSeqR, 
       d_imgSeqI, 
-      dimX, 
-      dimY,
-      numThreads);
+      dimX * dimY,
+      threadsPerBlock);
 
   /* Stop the timer */
   // cudaEventRecord(stop_event, 0);

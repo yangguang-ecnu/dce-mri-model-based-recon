@@ -7,5 +7,6 @@
  *    Date: Spring 2011
  */
 
-#define SIZE 16
-#define BLOCKSIZE 4
+#define MAX_THREADS_PER_BLOCK 256
+
+#define CEIL_DIV(A, B) ((A + B - 1) / B)
