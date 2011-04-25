@@ -107,7 +107,7 @@ function demo
     step_test
 
     t = linspace(0,5,1000);
-    Cp = breastCp(t);
+    Cp = AIF(t);
     
 %     figure, plot(t,Cp)
     
@@ -127,7 +127,7 @@ function demo
     hold all; plot(t,e)
     
     E = kernel(t', kTrans, kEp, ti);
-    Cpi = breastCp(ti);
+    Cpi = AIF(ti);
     
 %     figure('Position', [717   524   560   420])
 %     plot(repmat(t',[1 size(E,2)]), bsxfun(@times, E, Cpi)/kTrans)
@@ -151,7 +151,7 @@ function demo
     %% 
     %
     %
-    f1 = @(x) breastCp(x);
+    f1 = @(x) AIF(x);
     f2 = @(x) kernel(x, kTrans, kEp, 0);
     %t = linspace(t(1),t(end),4000);
     q = quadv(@(tau) f2(tau) * f1(t-tau), t(1), t(end));
@@ -174,7 +174,7 @@ function demo
     oversample_j = 8;
     ti = linspace(ti_old(1),ti_old(end),oversample_i*length(ti_old));
     tj = linspace(ti_old(1),ti_old(end),oversample_j*length(ti_old));
-    Cpj = breastCp(tj);
+    Cpj = AIF(tj);
     
     figure
     hold all
@@ -222,7 +222,7 @@ function convolutionDemo()
 %     ti = linspace(t0, tf, Ti);
 %     tj = linspace(t0, tf, Tj);
 
-    Cpi = breastCp(ti);
+    Cpi = AIF(ti);
     
 %     dt_i = ti(2) - ti(1);
 %     dt_j = tj(2) - tj(1);
@@ -248,7 +248,6 @@ function convolutionDemo()
     end
 end
 %%
-
 
 %%%%%%%%%%%%%%%%%%  C    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function signal = convolutionForC_optimize_3(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, samplingRate)
@@ -447,8 +446,6 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
 
-
-
 function signal = convolutionForC_optimize_2(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, samplingRate)
     
     % Interval length
@@ -570,7 +567,6 @@ function signal = convolutionForC_optimize_2(KTrans, k_ep, dt_i, Ti, dt_j, Tj, C
 end
 %%
 
-
 %%
 function signal = convolutionForC_optimize_1(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, samplingRate)
     
@@ -619,10 +615,6 @@ function signal = convolutionForC_optimize_1(KTrans, k_ep, dt_i, Ti, dt_j, Tj, C
     end
 end
 %%
-
-
-
-
 
 %%
 function signal = convolutionForC(KTrans, k_ep, ti, tj, Cpi, samplingRate)
@@ -702,29 +694,11 @@ function s = convolutionFromMapleVectorized(t, k, t_0, oversamplingFactor)
     ind_3 = (x > L);
     
     a = exp(k*L);
-    %s = exp(-k*x) * (1/a - 2 + a)
     s(ind_1) = exp(-k*(L + x(ind_1))) - 1 + k*(x(ind_1) + L); 
     s(ind_2) = exp(-k*(L + x(ind_2))) - 2*exp(-k*x(ind_2)) + 1 + k*(L - x(ind_2));
     s(ind_3) = exp(-k*x(ind_3)) * (1/a - 2 + a);
 
     s = s * oversamplingFactor / (k * k);
-    
-%     if x <= -L
-%         s = 0;
-%     else
-%         if x > L
-%             %s = exp(-k*(L + x)) - 2*exp(-k*x) + exp(-k*(-L + x));
-%             %s = exp(-k*x) * (exp(-k*L) - 2 + exp(k*L));
-%             a = exp(k*L);
-%             s = exp(-k*x) * (1/a - 2 + a);
-%             %s = exp(-k*x) * sinh(k*L/2)^2;
-%         elseif x <= 0
-%             s = exp(-k*(L + x)) - 1 + k*(x + L); 
-%         elseif x <= L
-%             s = exp(-k*(L + x)) - 2*exp(-k*x) + 1 + k*(L - x);
-%         end
-%         s = s * oversamplingFactor / (k * k);
-%     end
 end
 
 function s = convolutionFromMaple(t, k, t_0, oversamplingFactor)
@@ -748,10 +722,6 @@ function s = convolutionFromMaple(t, k, t_0, oversamplingFactor)
     end
 end
 
-
-
-
-
 function s = convolutionFromMapleOld(t, k, n)
     if t <= -1 + n
         s = 0;
@@ -771,9 +741,6 @@ function s = convolutionFromMapleOld(t, k, n)
 %     );
 end
 
-
-%%
-%
 function e = kernelScalarVersion(t, kTrans, kEp, t0)
     e = kTrans * exp( -kEp*(t - t0) ) .* (t >= t0);
 end
@@ -782,105 +749,109 @@ function e = kernelAltVersion(t, kTrans, kEp)
     e = kTrans * exp( -kEp*(t) );
 end
 
-
 function e = kernel(t, kTrans, kEp, t0)
     e = kTrans * exp( -kEp*bsxfun(@minus, t, t0) ) .* bsxfun(@ge, t, t0);
 end
 
 function g = convolveCWithKernel(t, kTrans, kEp, ti)
     E = kernel(t', kTrans, kEp, ti);
-    Cpi = breastCp(ti);
+    Cpi = AIF(ti);
     
     g = sum(bsxfun(@times, E, Cpi));
 end
 
-%% Population model for Breast Input function
-function Cp = breastCp(t,dt)
-    if (nargin < 2) dt = 32/60; end;
-
-    t = 60*t;
-    dt = 60*dt;
-
-    alpha = 4.0;
-
-    %Cp = Cps([0.10 dt+48 alpha 20.0 1000.0],t); 
-
-    Cp = Cpg([1.0 dt alpha 5.0],t) + ...
-         Cpg([0.2 dt+28 alpha 10.0],t) + ...
-         Cpg([0.10 dt+38 alpha 20.0],t) + ...
-         Cps([0.10 dt+48 alpha 20.0 1000.0],t);
-
-    Cp = 5.0*Cp;
-
-end
-
-% param(1) = Cp0
-% param(2) = Delta
-% param(3) = alpha
-% param(4) = tau
 %
-function f = Cpg(param,t)
-
-    Cp0 = abs(param(1));
-    Delta = param(2);
-    alpha = max(abs(param(3)),1);
-    tau = abs(param(4));
-
-    tprime = t-Delta;
-
-    alphaprime = alpha-1;
-    norm = exp(-alphaprime)*(tau*alphaprime)^alphaprime;
-
-    if (length(t) == 1)
-        if (t < Delta) 
-            f = 0;
-        else
-            f = (Cp0/norm)*(tprime^alphaprime)*exp(-tprime/tau);
-        end;
-    else
-        idx = find(t>=Delta);
-        f = zeros(size(t));
-        f(idx) = (Cp0/norm)*(tprime(idx).^alphaprime).*exp(-tprime(idx)/tau);
-    end;
-
-end
-
-% param(1) = Cp0
-% param(2) = delta
-% param(3) = alpha
-% param(4) = tau
-% param(5) = T
-%
-function f = Cps(param,t)
-
-    Cp0 = abs(param(1));
-    Delta = param(2);
-    alpha = max(abs(param(3)),1);
-    tau = abs(param(4));
-    T = abs(param(5));
-
-    tprime = t-Delta;
-
-    norm = gamma(alpha);
-
-    xi = 1/tau-1/T;
-    gam = norm;
-
-    if (length(t) == 1)
-        if (t < Delta) 
-            f = 0;
-        else
-            f = (Cp0/norm)*gam*exp(-tprime/T)*gammaincc(xi*tprime,alpha);
-        end;
-    else
-        idx = find(t>=Delta);
-        f = zeros(size(t));
-        f(idx) = (Cp0/norm)*gam*exp(-tprime(idx)/T).*gammaincc(xi*tprime(idx),alpha);
-    end;
-
-end
-
-%% Corrected gammainc?
-function y = gammaincc(x, a)
-    y = gammainc(x, a);
-end
+% function Cp = AIF(t)
+%     Cp = breastCp(t);
+% end
+% 
+% %% Population model for Breast Input function
+% function Cp = breastCp(t,dt)
+%     if (nargin < 2) dt = 32/60; end;
+% 
+%     t = 60*t;
+%     dt = 60*dt;
+% 
+%     alpha = 4.0;
+% 
+%     %Cp = Cps([0.10 dt+48 alpha 20.0 1000.0],t); 
+% 
+%     Cp = Cpg([1.0 dt alpha 5.0],t) + ...
+%          Cpg([0.2 dt+28 alpha 10.0],t) + ...
+%          Cpg([0.10 dt+38 alpha 20.0],t) + ...
+%          Cps([0.10 dt+48 alpha 20.0 1000.0],t);
+% 
+%     Cp = 5.0*Cp;
+% 
+% end
+% 
+% % param(1) = Cp0
+% % param(2) = Delta
+% % param(3) = alpha
+% % param(4) = tau
+% %
+% function f = Cpg(param,t)
+% 
+%     Cp0 = abs(param(1));
+%     Delta = param(2);
+%     alpha = max(abs(param(3)),1);
+%     tau = abs(param(4));
+% 
+%     tprime = t-Delta;
+% 
+%     alphaprime = alpha-1;
+%     norm = exp(-alphaprime)*(tau*alphaprime)^alphaprime;
+% 
+%     if (length(t) == 1)
+%         if (t < Delta) 
+%             f = 0;
+%         else
+%             f = (Cp0/norm)*(tprime^alphaprime)*exp(-tprime/tau);
+%         end;
+%     else
+%         idx = find(t>=Delta);
+%         f = zeros(size(t));
+%         f(idx) = (Cp0/norm)*(tprime(idx).^alphaprime).*exp(-tprime(idx)/tau);
+%     end;
+% 
+% end
+% 
+% % param(1) = Cp0
+% % param(2) = delta
+% % param(3) = alpha
+% % param(4) = tau
+% % param(5) = T
+% %
+% function f = Cps(param,t)
+% 
+%     Cp0 = abs(param(1));
+%     Delta = param(2);
+%     alpha = max(abs(param(3)),1);
+%     tau = abs(param(4));
+%     T = abs(param(5));
+% 
+%     tprime = t-Delta;
+% 
+%     norm = gamma(alpha);
+% 
+%     xi = 1/tau-1/T;
+%     gam = norm;
+% 
+%     if (length(t) == 1)
+%         if (t < Delta) 
+%             f = 0;
+%         else
+%             f = (Cp0/norm)*gam*exp(-tprime/T)*gammaincc(xi*tprime,alpha);
+%         end;
+%     else
+%         idx = find(t>=Delta);
+%         f = zeros(size(t));
+%         f(idx) = (Cp0/norm)*gam*exp(-tprime(idx)/T).*gammaincc(xi*tprime(idx),alpha);
+%     end;
+% 
+% end
+% 
+% %% Corrected gammainc?
+% function y = gammaincc(x, a)
+%     y = gammainc(x, a);
+% end
