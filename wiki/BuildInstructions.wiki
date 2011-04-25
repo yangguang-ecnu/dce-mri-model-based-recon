@@ -1,4 +1,4 @@
-# Instructions for building and running this code.
+#summary Instructions for building and running this code.
 
 = Introduction =
 
