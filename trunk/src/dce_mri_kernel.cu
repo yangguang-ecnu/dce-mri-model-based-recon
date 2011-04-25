@@ -134,16 +134,26 @@ float host_compute(
   // CUDA_SAFE_CALL(cudaEventCreate(&start_event));
   // CUDA_SAFE_CALL(cudaEventCreate(&stop_event));
 
-  /* Cuda memory initialization */
-  cudaMalloc((void **) &d_KTrans, dimX * dimY * sizeof(float));
-  cudaMalloc((void **) &d_k_ep, dimX * dimY * sizeof(float));
-  cudaMalloc((void **) &d_Cpi, Ti * sizeof(float));
-  cudaMalloc((void **) &d_imgSeqR, dimX * dimY * Tj * sizeof(float));
-  cudaMalloc((void **) &d_imgSeqI, dimX * dimY * Tj * sizeof(float));
+  cudaError_t errCode;
 
-  cudaMemcpy(d_KTrans, KTrans, dimX * dimY * sizeof(float), cudaMemcpyHostToDevice);
-  cudaMemcpy(d_k_ep, k_ep, dimX * dimY * sizeof(float), cudaMemcpyHostToDevice);
-  cudaMemcpy(d_Cpi, Cpi, Ti * sizeof(float), cudaMemcpyHostToDevice);
+  /* Cuda memory initialization */
+  errCode = cudaMalloc((void **) &d_KTrans, dimX * dimY * sizeof(float));
+  if (errCode != cudaSuccess) { return -1; }
+  errCode = cudaMalloc((void **) &d_k_ep, dimX * dimY * sizeof(float));
+  if (errCode != cudaSuccess) { return -1; }
+  errCode = cudaMalloc((void **) &d_Cpi, Ti * sizeof(float));
+  if (errCode != cudaSuccess) { return -1; }
+  errCode = cudaMalloc((void **) &d_imgSeqR, dimX * dimY * Tj * sizeof(float));
+  if (errCode != cudaSuccess) { return -1; }
+  errCode = cudaMalloc((void **) &d_imgSeqI, dimX * dimY * Tj * sizeof(float));
+  if (errCode != cudaSuccess) { return -1; }
+
+  errCode = cudaMemcpy(d_KTrans, KTrans, dimX * dimY * sizeof(float), cudaMemcpyHostToDevice);
+  if (errCode != cudaSuccess) { return -1; }
+  errCode = cudaMemcpy(d_k_ep, k_ep, dimX * dimY * sizeof(float), cudaMemcpyHostToDevice);
+  if (errCode != cudaSuccess) { return -1; }
+  errCode = cudaMemcpy(d_Cpi, Cpi, Ti * sizeof(float), cudaMemcpyHostToDevice);
+  if (errCode != cudaSuccess) { return -1; }
 
   /* Start the timer */
   // cudaEventRecord(start_event, 0);

@@ -102,7 +102,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   float *imgSeqI = (float *)mxGetPi(mxImgSeq);
 
   /* Call the CUDA kernel with the translated data */
-  host_compute(
+  int success = host_compute(
       KTrans, 
       k_ep, 
       dt_i, 
@@ -115,6 +115,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       imgSeqI, 
       dims[0], 
       dims[1]);
+
+  /* Check that cuda code completed successfully */
+  if (success != 0) {
+    mexPrintf("Cuda host encountered a memory error.\n");
+  }
 
   /* Free memory */
   mxFree(dims);
