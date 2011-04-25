@@ -215,8 +215,10 @@ end
 %%
 function signal = convolutionOuterLoop8x4()
     % Image dimensions
-    X = 4;
-    Y = 4;
+%     X = 26;
+%     Y = 26;
+    X = 8;
+    Y = 8;
 
     % Initialize KTrans and k_ep to some arbitrary values
     k_ep    = zeros(X,Y,'single');
@@ -243,7 +245,7 @@ function signal = convolutionOuterLoop8x4()
     b = 1; c = 4; f = @(x) 1/b * x./(1 + (x*c-c).^2); %plot(x, f(x))
     Z = f(Z);
     Z = Z * 10;
-    Z = max(Z, 1e-4);
+    Z = max(Z, 1e-1);
     
     %figure, imagesc(Z'), axis image; colorbar
     
@@ -291,8 +293,8 @@ function signal = convolutionOuterLoop8x4()
     Cpi     = single(Cpi);
     oversample_i = single(oversample_i);
     
-    ti = single(ti);
-    tj = single(tj);
+%     ti = single(ti);
+%     tj = single(tj);
     
     fprintf('Beginning the timings\n')
 
@@ -370,19 +372,24 @@ function signal = convolutionOuterLoop8x4()
     plot(tj, signal_transposed(:,:))
     title('Matrix version kernel code output (GPU)')
 
-    figure, 
+    figure, hold all; plot(ti, 0*Cpi)
     signal_transposed = permute(signal_2 - signal_0, [3 1 2]);
     plot(tj, signal_transposed(:,:))
     title('Error difference time curves (GPU vs CPU)')
     
     
     % Show reconstructed time series of images (movie)
-    figure
+    fig = figure;
 %     lgsignal = log10(abs(signal));
 %     crange = [-2, max(lgsignal(:))];
     lgsignal = ((signal));
     crange = [0, max(lgsignal(:))];
     for t = 1:Tj
+        if ishandle(fig)
+            set(0, 'CurrentFigure', fig)
+        else
+            break
+        end
         imagesc(lgsignal(:,:,t)', crange)
         axis image xy
         colorbar
@@ -427,7 +434,7 @@ function signal = convolutionOuterLoop8x4()
     figure, montage(permute(sampling,[2 1 4 3]), 'size', [Ty Tx]), colormap(jet)
     figure, montage(permute(sampling,[2 1 4 3]), 'size', [Ty Tx]), colormap(bone)
     
-    figure, imagesc(k_ep'), axis image; colorbar
+    %figure, imagesc(k_ep'), axis image; colorbar
 end
 
 %%
