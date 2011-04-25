@@ -10,10 +10,10 @@ We are also not using the standard CUDA CMake build system, so at this point in 
 = Details =
 
 Steps to run:
-1. Download code.
-2. Update makefile flags CUDA_INCLUDE and CUDA_LIBRARIES to be accurate for your system.
-3. Run make ( should produce a .so and a .mexa64 file )
-4. Copy the .so to somewhere on your library path and/or update LD_LIBRARY_PATH to point at the current dir.
-5. From MATLAB, you should now have access to the dce_mri_kernel( ... ) function.
+# Download code.
+# Update makefile flags CUDA_INCLUDE and CUDA_LIBRARIES to be accurate for your system.
+# Run make ( should produce a .so and a .mexa64 file )
+# Copy the .so to somewhere on your library path and/or update LD_LIBRARY_PATH to point at the current dir.
+# From MATLAB, you should now have access to the dce_mri_kernel( ... ) function.
 
 This functions takes a number of arguments and returns a 3D matrix of complex floats. Details of the input and output are outlined in the header comments of dce_mri_mex.c.
