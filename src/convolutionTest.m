@@ -63,6 +63,26 @@ end
 %% Shortened Demo
 %
 function shortenedDemo
+
+    delayDemo    
+    multiConvolution;
+    timingDemo
+    
+%     convolutionOuterLoop;
+    
+    '';
+end
+
+function delayDemo
+    
+%     y = linspace(0,0.25);
+%     s = zeros(length(y));
+%     for i = 1:length(y)
+%         s(i) = breastCp(0.25,y(i));
+%     end
+%     figure, plot(y,s)
+%     '';
+
 % 
 %     load fittedImages_November-04-2007_054554_2hr_20min
 %     KTrans = beta(:,:,1);
@@ -88,10 +108,97 @@ function shortenedDemo
 %     %figure, for t=1:29; imagesc(signal_2(:,:,t)'), axis image; drawnow; end
 %     
     '';
-    %convolutionOuterLoop;
-    multiConvolution;
     
-    timingDemo
+    k_ep = 100;
+    KTrans = 10/k_ep;
+
+    overFactor = 5;  % Needs to be an integer
+    
+    oversample_i = 32;
+    oversample_j = 2;
+    oversample_i_b = 1 * oversample_i;
+    oversample_j_b = overFactor * oversample_j;
+
+    t0 = 0; tf = 5; T  = 50;
+    %dt_j = (tf - t0) / (oversample_j*T);
+
+    Ti = oversample_i*T;
+    Tj = oversample_j*T;
+    Tj2 = oversample_j_b*T;
+
+
+    dt_i = (tf - t0) / Ti;
+    dt_j = (tf - t0) / Tj;
+    dt_j2 = (tf - t0) / Tj2;
+
+    ti = (0:Ti-1) * dt_i;
+    tj = (0:Tj-1) * dt_j;
+    tj2 = (0:Tj2-1) * dt_j2;
+
+    tj_vec = single(0:Tj-1) * dt_j;
+    tj_vec = permute(tj_vec, [1 3 2]);  % Make it 1x1xTj
+    
+    
+    % Init Cpi vector
+    Cpi = breastCp(ti);
+    [v,ind] = max(Cpi)
+    f = @(x) 5 - breastCp(x);
+    ti_min = fminsearch(f, ti(ind));
+    [v,ind] = min(abs(ti - ti_min));
+    [ti(ind), Cpi(ind)]
+    
+    
+    
+    h2 = figure;
+    hold all
+    title('Difference')
+    
+    h1 = figure;
+    hold all
+    %plot(ti, Cpi*10, 'LineWidth', 3, 'Color', [.8 .8 1])
+    
+    
+%     Ti = oversample_i*T;
+%     Tj = oversample_j*T;
+%     
+%     dt_i = (tf - t0) / Ti;
+%     dt_j = (tf - t0) / Tj;
+    
+    delays = linspace(0, dt_j, 10);
+    for k = 1:length(delays)
+        delay = delays(k);
+
+        signal_a = convolutionOversampleRun (KTrans, k_ep, delay, oversample_i, oversample_j);
+        signal_b = convolutionOversampleRun (KTrans, k_ep, delay, oversample_i_b, oversample_j_b);
+
+        
+        v = (k-1) / max(1, length(delays)-1);
+        color_a = [1-v,   v, v];
+        color_b = [0.9*(1-v), 0.75*(1-v), v];
+
+        s_a = real(signal_a);
+        s_a = permute(s_a, [3 1 2]);
+        s_a = s_a(:,:);
+        t_a = tj(:);
+
+        s_b = real(signal_b);
+        s_b = permute(s_b, [3 1 2]);
+        s_b = s_b(:,:);
+        t_b = tj2(:);
+        
+        s_c = s_b(1:overFactor:end);
+        s_c = s_c(1:min(end,length(s_a)));  % Force to be same size if something went wrong
+        t_c = t_a;
+        
+        set(0,'CurrentFigure', h1)
+        plot(t_a, s_a, '--', 'Color', color_a) 
+        plot(t_b, s_b,  '-', 'Color', color_b) 
+        plot(t_c, s_c,  'o', 'Color', color_b)
+
+        set(0,'CurrentFigure', h2)
+        plot(t_a, s_a - s_c, 'Color', color_a)
+        
+    end
     
     '';
 end
@@ -154,16 +261,33 @@ function timingDemo
     time_cuda
     RMSE
     nRMSE
+
+    displayInUnits = @(src,evt) set(gca,...
+        'XTickLabel', cellfun(@num2str, num2cell(get(gca, 'XTick')), 'UniformOutput',false), ...
+        'YTickLabel', cellfun(@num2str, num2cell(get(gca, 'YTick')), 'UniformOutput',false) ...
+    );
     
-    figure, 
+    %set(gcf,'ResizeFcn', displayInUnits)
+    
+    figure('ResizeFcn', displayInUnits)
     %hold all
-    loglog(Xs.*Ys, time_matlab, '--X', Xs.*Ys, time_cuda, '-*', 'LineWidth', 5, 'MarkerSize', 25)
+    fontsize_title  = 48;
+    fontsize        = floor(3/4*fontsize_title);
+    fontsize_axis   = floor(1/3*fontsize_title);
+    markersize = 25;
+    linewidth = 5;
+    loglog(Xs.*Ys, time_matlab, '--X', Xs.*Ys, time_cuda, '-*', 'LineWidth', linewidth, 'MarkerSize', markersize)
     grid minor
-    title('\fontsize{48}Time in seconds as a function of problem size (X x Y)')
+    title('Time in seconds as a function of problem size (X x Y)', 'FontSize', fontsize_title)
     %legend('\fontsize{32}Matlab', '\fontsize{32}Cuda')
-    legend('\fontsize{32}CPU', '\fontsize{32}GPU')
-    ylabel('\fontsize{32}t (sec)')
-    xlabel('\fontsize{32}Number of Voxels')
+    legend(sprintf('\\fontsize{%d}CPU',fontsize_axis), sprintf('\\fontsize{%d}GPU',fontsize_axis))
+    %legend('CPU', 'GPU')
+    ylabel('t (sec)', 'Fontsize', fontsize)
+    xlabel('Number of Voxels', 'Fontsize', fontsize)
+    set(gca,'FontSize', fontsize_axis)
+    set(gca,'YTickLabel', cellfun(@num2str, num2cell(get(gca, 'YTick')), 'UniformOutput',false))
+    set(gca,'XTickLabel', cellfun(@num2str, num2cell(get(gca, 'XTick')), 'UniformOutput',false))
+   
     %loglog(Xs.*Ys, time_cuda, '-o')
     %diag(time_matlab)
     %diag(time_cuda)
@@ -277,30 +401,158 @@ end
 
 %%
 function signal = convolutionOuterLoop()
+    % Init time variables
     t0 = 0; 
     tf = 5;
-    T = 50;
+    T  = 50;
 
-    oversample_i = 8;
-    oversample_j = 2;
+    oversample_i = 16;
+    oversample_j = 4;
     
     Ti = oversample_i*T;
     Tj = oversample_j*T;
     
-    ti = linspace(t0, tf, Ti);
-    tj = linspace(t0, tf, Tj);
+    dt_i = (tf - t0) / Ti;
+    dt_j = (tf - t0) / Tj;
+    
+    %ti = linspace(t0, tf, Ti);
+    %tj = linspace(t0, tf, Tj);
+    ti = (0:Ti-1) * dt_i;
+    tj = (0:Tj-1) * dt_j;
+%     tj = linspace(t0, tf, Tj);
+    
+    %dt_i = ti(2) - ti(1);
+    %dt_j = tj(2) - tj(1);
 
+    % Init Cpi vector
     Cpi = breastCp(ti);
-    
-    dt_i = ti(2) - ti(1);
-    dt_j = tj(2) - tj(1);
 
-    figure
-    hold all
-    plot(ti, Cpi*10, 'LineWidth', 5)
+    k_ep = 100;
+    KTrans = k_ep;
     
-    for k_ep = logspace(log10(0.01), log10(1000), 20);
-        KTrans = k_ep;
+    
+    % Convert to 32-bit floats for everything inputted into dce_mri_mex()
+    KTrans  = single(KTrans);
+    k_ep    = single(k_ep);
+    dt_i    = single(dt_i);
+    dt_j    = single(dt_j);
+    Ti      = int32(Ti);
+    Tj      = int32(Tj); 
+    Cpi     = single(Cpi);
+    oversample_i = single(oversample_i);
+    oversample_j = single(oversample_j);
+
+
+    tj_vec = single(0:Tj-1) * dt_j;
+    tj_vec = permute(tj_vec, [1 3 2]);  % Make it 1x1xTj
+    
+
+    h2 = figure;
+    hold all
+    title('Difference')
+    
+    h1 = figure;
+    hold all
+    plot(ti, Cpi*10, 'LineWidth', 3, 'Color', [.8 .8 1])
+    
+    %for k_ep = logspace(log10(0.01), log10(1000), 20);
+    %for delay = delays
+    
+    delays = linspace(0, dt_j, 10);
+    for k = 1:length(delays)
+        delay = delays(k);
+
+        signal = zeros(1,1,Tj,'single');
+        for i = 1:Ti
+            signal = signal + Cpi(i) * convolutionFromMapleMatrized(tj_vec - delay, k_ep, ti(i), oversample_i);
+        end
+        signal = bsxfun(@times,signal,KTrans);
+
+        signal_alt = zeros(1,1,Tj,'single');
+        for i = 1:Ti
+            signal_alt = signal_alt + Cpi(i) * convolutionFromMapleMatrized(tj_vec, k_ep, ti(i) + delay, oversample_i);
+        end
+        signal_alt = bsxfun(@times,signal_alt,KTrans);
+
+%         signal_alt = dce_mri_mex(single(KTrans), single(k_ep), single(dt_i), int32(Ti), single(dt_j), int32(Tj), single(Cpi), single(oversample_i));
+        
+        v = (k-1) / max(1, length(delays)-1);
+        color = [v, 1-v, 1-v];
+        
+        set(0,'CurrentFigure', h1)
+        plot(tj, real(signal(:)), 'Color', color)
+
+        set(0,'CurrentFigure', h2)
+        plot(tj, real(signal(:) - signal_alt(:)), 'Color', color)
+        
+    end
+    '';
+end
+
+%%
+function signal = convolutionOversampleRun (KTrans, k_ep, delay, oversample_i, oversample_j)
+    [X,Y] = size(KTrans);
+    
+    % Init time variables
+    t0 = 0; 
+    tf = 5;
+    T  = 50;
+
+%     oversample_i = 16;
+%     oversample_j = 4;
+    
+    Ti = oversample_i*T;
+    Tj = oversample_j*T;
+    
+    dt_i = (tf - t0) / Ti;
+    dt_j = (tf - t0) / Tj;
+    
+    %ti = linspace(t0, tf, Ti);
+    %tj = linspace(t0, tf, Tj);
+    ti = (0:Ti-1) * dt_i;
+    tj = (0:Tj-1) * dt_j;
+%     tj = linspace(t0, tf, Tj);
+    
+    %dt_i = ti(2) - ti(1);
+    %dt_j = tj(2) - tj(1);
+
+    % Init Cpi vector
+    Cpi = breastCp(ti);
+
+%     k_ep = 100;
+%     KTrans = k_ep;
+    
+    
+    % Convert to 32-bit floats for everything inputted into dce_mri_mex()
+    KTrans  = single(KTrans);
+    k_ep    = single(k_ep);
+    dt_i    = single(dt_i);
+    dt_j    = single(dt_j);
+    Ti      = int32(Ti);
+    Tj      = int32(Tj); 
+    Cpi     = single(Cpi);
+    oversample_i = single(oversample_i);
+    oversample_j = single(oversample_j);
+
+
+    tj_vec = single(0:Tj-1) * dt_j;
+    tj_vec = permute(tj_vec, [1 3 2]);  % Make it 1x1xTj
+    
+
+%     h2 = figure;
+%     hold all
+%     title('Difference')
+%     
+%     h1 = figure;
+%     hold all
+%     plot(ti, Cpi*10, 'LineWidth', 3, 'Color', [.8 .8 1])
+    
+    %for k_ep = logspace(log10(0.01), log10(1000), 20);
+    %for delay = delays
+    
+    %delays = linspace(0, dt_j, 10);
+%     for k = 1:length(delays)
+%         delay = delays(k);
 %         
 %         sj = zeros(1,Tj);
 %         for i=1:Ti
@@ -308,10 +560,32 @@ function signal = convolutionOuterLoop()
 %             sj = sj + Cpi(i) * KTrans * signal_part;
 %         end
 
-        signal = dce_mri_mex(single(KTrans), single(k_ep), single(dt_i), int32(Ti), single(dt_j), int32(Tj), single(Cpi), single(oversample_i));
-        % plot(tj, signal)
-        plot(tj, real(signal(:)))
-    end
+        %sj = zeros(X,Y,Tj,'single');
+        signal = zeros(X,Y,Tj,'single');
+        for i = 1:Ti
+            signal = signal + Cpi(i) * convolutionFromMapleMatrized(tj_vec - delay, k_ep, ti(i), oversample_i);
+        end
+        signal = bsxfun(@times,signal,KTrans);
+
+%         signal_alt = zeros(1,1,Tj,'single');
+%         for i = 1:Ti
+%             signal_alt = signal_alt + Cpi(i) * convolutionFromMapleMatrized(tj_vec, k_ep, ti(i) + delay, oversample_i);
+%         end
+%         signal_alt = bsxfun(@times,signal_alt,KTrans);
+
+%         signal_alt = dce_mri_mex(single(KTrans), single(k_ep), single(dt_i), int32(Ti), single(dt_j), int32(Tj), single(Cpi), single(oversample_i));
+        
+%         v = (k-1) / max(1, length(delays)-1);
+%         color = [v, 1-v, 1-v];
+        
+%         set(0,'CurrentFigure', h1)
+%         plot(tj, real(signal(:)), 'Color', color)
+
+%         set(0,'CurrentFigure', h2)
+%         plot(tj, real(signal(:) - signal_alt(:)), 'Color', color)
+        
+%     end
+    '';
 end
 
 
@@ -770,7 +1044,8 @@ end
 
 %% Population model for Breast Input function
 function Cp = breastCp(t,dt)
-    if (nargin < 2) dt = 32/60; end;
+    if nargin < 2, dt = 0.25; end;
+    %if (nargin < 2) dt = 32/60; end;
 
     t = 60*t;
     dt = 60*dt;
