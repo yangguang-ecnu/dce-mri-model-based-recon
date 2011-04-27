@@ -13,22 +13,14 @@
 /* Local Includes */
 #include "dce_mri_constants.h"
 
-extern "C" float
-host_compute(
-    float *KTrans, 
-    float *k_ep, 
-    float dt_i, 
-    int Ti, 
-    float dt_j, 
-    int Tj, 
-    float *Cpi, 
-    float samplingRate, 
-    float *imgSeqR, 
-    float *imgSeqI, 
-    int dimX, 
-    int dimY);
-
-__global__ void compute(
+/*
+ * voxelConvolve
+ *
+ * This function represents the meat of the convolution work to be done. It is
+ * provided as both a host and device function, used by the CUDA kernel but
+ * also by a sequential C version for testing and benchmarking
+ */
+__host__ __device__ void voxelConvolve(
     float *KTrans, 
     float *k_ep, 
     float dt_i, 
@@ -40,13 +32,7 @@ __global__ void compute(
     float *imgSeqR, 
     float *imgSeqI, 
     int dimXY, 
-    int threadsPerBlock) {
-
-  /* Get our coordinate into the KTrans, k_ep, and t0 matrices */
-  int idx = blockIdx.x * threadsPerBlock + threadIdx.x;
-
-  /* Bail early if we are an out-of-bounds thread */
-  if (idx >= dimXY) { return; }
+    int idx) {
 
   /* Interval length */
   float L = 1.0f / samplingRate;
@@ -98,17 +84,54 @@ __global__ void compute(
 }
 
 /*
- * host_compute
+ * gpuConvolve
+ *
+ * The CUDA kernel which sets up the thread index, checks boundary conditions,
+ * and calls the actual work function.
+ */
+__global__ void gpuConvolve(
+    float *KTrans, 
+    float *k_ep, 
+    float dt_i, 
+    int Ti, 
+    float dt_j, 
+    int Tj, 
+    float *Cpi, 
+    float samplingRate, 
+    float *imgSeqR, 
+    float *imgSeqI, 
+    int dimXY, 
+    int threadsPerBlock) {
+
+  /* Get our coordinate into the KTrans, k_ep, and t0 matrices */
+  int idx = blockIdx.x * threadsPerBlock + threadIdx.x;
+
+  /* Bail early if we are an out-of-bounds thread */
+  if (idx >= dimXY) { return; }
+
+  voxelConvolve(
+      KTrans,
+      k_ep,
+      dt_i,
+      Ti,
+      dt_j,
+      Tj,
+      Cpi,
+      samplingRate,
+      imgSeqR,
+      imgSeqI,
+      dimXY,
+      idx);
+}
+
+/*
+ * gpuSetupAndConvolve
  *
  * This is the function which is externally visible, allowing access to the
  * CUDA kernel. Its purpose is to setup the data and make the kernel call for the CUDA
  * computation, and then copy result data back out of the GPU.
- *
- * In our particular case, KTrans, k_ep, ... are input parameters and
- * imgSeqR, imgSeqI are output parameters corresponding to the real and
- * imaginary parts of the computed values.
  */
-float host_compute(
+extern "C" float gpuSetupAndConvolve(
     float *KTrans, 
     float *k_ep, 
     float dt_i, 
@@ -166,7 +189,7 @@ float host_compute(
   dim3 dimBlock(threadsPerBlock, 1, 1);
 
   /* Call the kernel */
-  compute<<<dimGrid, dimBlock>>>(
+  gpuConvolve<<<dimGrid, dimBlock>>>(
       d_KTrans, 
       d_k_ep, 
       dt_i,
@@ -187,9 +210,51 @@ float host_compute(
   // CUDA_SAFE_CALL(cudaEventElapsedTime(&cuda_elapsed_time, start_event, stop_event));
 
   /* Copy cuda memory back to device */
-  cudaMemcpy(imgSeqR, d_imgSeqR, dimX * dimY * Tj * sizeof(float), cudaMemcpyDeviceToHost);
-  cudaMemcpy(imgSeqI, d_imgSeqI, dimX * dimY * Tj * sizeof(float), cudaMemcpyDeviceToHost);
+  errCode = cudaMemcpy(imgSeqR, d_imgSeqR, dimX * dimY * Tj * sizeof(float), cudaMemcpyDeviceToHost);
+  if (errCode != cudaSuccess) { return -1; }
+  errCode = cudaMemcpy(imgSeqI, d_imgSeqI, dimX * dimY * Tj * sizeof(float), cudaMemcpyDeviceToHost);
+  if (errCode != cudaSuccess) { return -1; }
 
   //return cuda_elapsed_time;
+  return 0;
+}
+
+/*
+ * cSetupAndConvolve
+ *
+ * This is a sequential C version of the same computation, provided for
+ * performance comparisons and benchmarks.
+ */
+extern "C" float cSetupAndConvolve(
+    float *KTrans, 
+    float *k_ep, 
+    float dt_i, 
+    int Ti, 
+    float dt_j, 
+    int Tj, 
+    float *Cpi, 
+    float samplingRate, 
+    float *imgSeqR, 
+    float *imgSeqI, 
+    int dimX, 
+    int dimY) {
+
+  int i;
+  for (i = 0; i < dimX * dimY; i++) {
+    voxelConvolve(
+        KTrans, 
+        k_ep, 
+        dt_i,
+        Ti,
+        dt_j,
+        Tj,
+        Cpi, 
+        samplingRate,
+        imgSeqR, 
+        imgSeqI, 
+        dimX * dimY,
+        i);
+  }
+
   return 0;
 }
