@@ -89,7 +89,42 @@ function shortenedDemo
 %     
     '';
     %convolutionOuterLoop;
-    %convolutionOuterLoop8x4;
+    multiConvolution;
+    
+    timingDemo
+    
+    '';
+end
+
+
+function timingDemo
+% 
+%     load fittedImages_November-04-2007_054554_2hr_20min
+%     KTrans = beta(:,:,1);
+%     k_ep = beta(:,:,2);
+%     dt_i = 1;
+%     dt_j = 1;
+%     Ti = 0:28;
+%     Tj = 0:28;
+%     Cpi = breastCp(linspace(0,5,length(Tj)));
+%     oversample_i = 1;
+%     
+%     
+%     KTrans  = single(KTrans);
+%     k_ep    = single(k_ep);
+%     dt_i    = single(dt_i);
+%     Ti      = int32(Ti);
+%     dt_j    = single(dt_j);
+%     Tj      = int32(Tj); 
+%     Cpi     = single(Cpi);
+%     oversample_i = single(oversample_i);
+%     signal_2 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i);
+% 
+%     %figure, for t=1:29; imagesc(signal_2(:,:,t)'), axis image; drawnow; end
+%     
+    '';
+    %convolutionOuterLoop;
+    %multiConvolution;
     %[time_matlab, time_cuda, RMSE, nRMSE] = convolutionRun(16,16,100)
     
     Xs = 2.^(0:6);
@@ -384,7 +419,7 @@ end
 
 
 %%
-function signal = convolutionOuterLoop8x4()
+function signal = multiConvolution()
     % Image dimensions
     X = 64;
     Y = 64;
