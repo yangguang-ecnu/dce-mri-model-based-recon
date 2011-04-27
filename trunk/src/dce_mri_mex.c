@@ -19,6 +19,7 @@
 /* System Includes */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 /* Matlab Integration Includes */
 #include "mex.h"
@@ -41,14 +42,15 @@
  *
  * In our specific case, we are expecting the following input arguments:
  *
- * KTrans       - array of floats [2D, real valued]
- * k_ep         - array of floats [2D, real valued]
- * dt_i         - float
- * Ti           - int
- * dt_j         - float
- * Tj           - int
- * Cpi          - vector of floats [2D, real valued]
- * samplingRate - float
+ * KTrans        - array of floats [2D, real valued]
+ * k_ep          - array of floats [2D, real valued]
+ * dt_i          - float
+ * Ti            - int
+ * dt_j          - float
+ * Tj            - int
+ * Cpi           - vector of floats [2D, real valued]
+ * samplingRate  - float
+ * gpuAccelerate - bool
  *
  * and the following output arguments:
  *
@@ -57,7 +59,7 @@
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   /* Check for the correct number of input arguments */
-  if (nrhs != 8) {
+  if (nrhs != 9) {
     mexPrintf("Wrong number of arguments, expecting ...(kTrans, kEp, t0, samplingRate)\n");
     return;
   } 
@@ -77,6 +79,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   const mxArray *mx_Tj = prhs[5];
   const mxArray *mx_Cpi = prhs[6];
   const mxArray *mx_samplingRate = prhs[7];
+  const mxArray *mx_gpuAccelerate = prhs[8];
 
   /* Extract specific input data ptrs */
   float *KTrans = (float *)mxGetPr(mx_KTrans);
@@ -87,6 +90,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int Tj = *(int *)mxGetPr(mx_Tj);
   float *Cpi = (float *)mxGetPr(mx_Cpi);
   float samplingRate = *(float *)mxGetPr(mx_samplingRate);
+  bool gpuAccelerate = *(bool *)mxGetPr(mx_gpuAccelerate);
 
   /* Extract other useful information from input */
   const mwSize *kTransDims = mxGetDimensions(mx_KTrans);
@@ -101,20 +105,39 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   float *imgSeqR = (float *)mxGetPr(mxImgSeq);
   float *imgSeqI = (float *)mxGetPi(mxImgSeq);
 
-  /* Call the CUDA kernel with the translated data */
-  int success = host_compute(
-      KTrans, 
-      k_ep, 
-      dt_i, 
-      Ti, 
-      dt_j, 
-      Tj, 
-      Cpi, 
-      samplingRate, 
-      imgSeqR, 
-      imgSeqI, 
-      dims[0], 
-      dims[1]);
+  /* Call the appropriate kernel with the translated data */
+  int success;
+  if (gpuAccelerate) {
+    /* Call the CUDA kernel */
+    success = gpuSetupAndConvolve(
+        KTrans, 
+        k_ep, 
+        dt_i, 
+        Ti, 
+        dt_j, 
+        Tj, 
+        Cpi, 
+        samplingRate, 
+        imgSeqR, 
+        imgSeqI, 
+        dims[0], 
+        dims[1]);
+  } else {
+    /* Call a sequential C version of the kernel */
+    success = cSetupAndConvolve(
+        KTrans, 
+        k_ep, 
+        dt_i, 
+        Ti, 
+        dt_j, 
+        Tj, 
+        Cpi, 
+        samplingRate, 
+        imgSeqR, 
+        imgSeqI, 
+        dims[0], 
+        dims[1]);
+  }
 
   /* Check that cuda code completed successfully */
   if (success != 0) {
