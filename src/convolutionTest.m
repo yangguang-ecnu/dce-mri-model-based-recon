@@ -63,8 +63,76 @@ end
 %% Shortened Demo
 %
 function shortenedDemo
+% 
+%     load fittedImages_November-04-2007_054554_2hr_20min
+%     KTrans = beta(:,:,1);
+%     k_ep = beta(:,:,2);
+%     dt_i = 1;
+%     dt_j = 1;
+%     Ti = 0:28;
+%     Tj = 0:28;
+%     Cpi = breastCp(linspace(0,5,length(Tj)));
+%     oversample_i = 1;
+%     
+%     
+%     KTrans  = single(KTrans);
+%     k_ep    = single(k_ep);
+%     dt_i    = single(dt_i);
+%     Ti      = int32(Ti);
+%     dt_j    = single(dt_j);
+%     Tj      = int32(Tj); 
+%     Cpi     = single(Cpi);
+%     oversample_i = single(oversample_i);
+%     signal_2 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i);
+% 
+%     %figure, for t=1:29; imagesc(signal_2(:,:,t)'), axis image; drawnow; end
+%     
+    '';
     %convolutionOuterLoop;
-    convolutionOuterLoop8x4;
+    %convolutionOuterLoop8x4;
+    %[time_matlab, time_cuda, RMSE, nRMSE] = convolutionRun(16,16,100)
+    
+    Xs = 2.^(0:6);
+    Ys = 2.^(0:6);
+    %Ts = 2.^[5:7];
+    Ts = 64;
+    time_matlab = zeros(length(Xs),length(Ts));
+    time_cuda   = zeros(length(Xs),length(Ts));
+    RMSE        = zeros(length(Xs),length(Ts));
+    nRMSE       = zeros(length(Xs),length(Ts));
+%     for X = Xs
+%         for Y = Ys
+%             for T = Ts
+    for i = 1:length(Xs)
+        %for j = 1:length(Ys)
+            k = 1;
+            X = Xs(i);
+            Y = Ys(i);
+            T = Ts(k);
+            %for T = Ts
+                [time_matlab(i,k), time_cuda(i,k), RMSE(i,k), nRMSE(i,k)] = convolutionRun(X,Y,T);
+            %end
+        %end
+    end
+
+    time_matlab
+    time_cuda
+    RMSE
+    nRMSE
+    
+    figure, 
+    %hold all
+    loglog(Xs.*Ys, time_matlab, '--X', Xs.*Ys, time_cuda, '-*', 'LineWidth', 5, 'MarkerSize', 25)
+    grid minor
+    title('\fontsize{48}Time in seconds as a function of problem size (X x Y)')
+    %legend('\fontsize{32}Matlab', '\fontsize{32}Cuda')
+    legend('\fontsize{32}CPU', '\fontsize{32}GPU')
+    ylabel('\fontsize{32}t (sec)')
+    xlabel('\fontsize{32}Number of Voxels')
+    %loglog(Xs.*Ys, time_cuda, '-o')
+    %diag(time_matlab)
+    %diag(time_cuda)
+    '';
 end
 
 
@@ -213,6 +281,109 @@ end
 
 
 %%
+function [time_matlab, time_cuda, RMSE, nRMSE] = convolutionRun(X,Y,T)
+    % Initialize KTrans and k_ep to some arbitrary values
+    k_ep    = zeros(X,Y,'single');
+    KTrans  = zeros(X,Y,'single');
+    for x = 0:X-1
+        for y = 0:Y-1
+            u = x/(X + eps);
+            v = y/(Y + eps);
+            
+            w = 1/((1 - u)*(1 - v))^2;
+            w = w * 1e-1;
+            
+            k_ep(x+1,y+1)   = w;
+            KTrans(x+1,y+1) = w/10;
+        end
+    end
+    
+    [mX,mY] = meshgrid(linspace(-3,3,X),linspace(-3,3,Y)); Z = peaks(mX,mY)'; 
+    b = 1; c = 4; f = @(x) 1/b * x./(1 + (x*c-c).^2); %plot(x, f(x))
+    Z = f(Z);
+    Z = Z * 10;
+    Z = max(Z, 1e-1);
+        
+    k_ep = Z;
+    KTrans = Z/10;
+
+    % Init time variables
+    t0 = 0; 
+    tf = 5;
+
+    oversample_i = 8;
+    oversample_j = 2;
+    
+    Ti = oversample_i*T;
+    Tj = oversample_j*T;
+    
+    dt_i = (tf - t0) / Ti;
+    dt_j = (tf - t0) / Tj;
+    
+
+    ti = (0:Ti-1) * dt_i;
+    tj = (0:Tj-1) * dt_j;
+
+
+    % Init Cpi vector
+    Cpi = breastCp(ti);
+    
+    
+    % Convert to 32-bit floats for everything inputted into dce_mri_mex()
+    KTrans  = single(KTrans);
+    k_ep    = single(k_ep);
+    dt_i    = single(dt_i);
+    Ti      = int32(Ti);
+    dt_j    = single(dt_j);
+    Tj      = int32(Tj); 
+    Cpi     = single(Cpi);
+    oversample_i = single(oversample_i);
+    
+
+    fprintf('Beginning the timings\n')
+
+    
+    % Reference implementation
+	tj_vec = single(0:Tj-1) * dt_j; 
+    tj_vec = permute(tj_vec, [1 3 2]);  % Make it 1x1xTj
+    
+    time_matlab = tic;
+    sj = zeros(X,Y,Tj,'single');
+    for i = 1:Ti
+        sj = sj + Cpi(i) * convolutionFromMapleMatrized(tj_vec, k_ep, ti(i), oversample_i);
+    end
+    signal_0 = bsxfun(@times,sj,KTrans);
+    time_matlab = toc(time_matlab);
+
+    
+    
+    
+    
+    % Matrix version of mex-wrapper call
+    time_cuda = tic;
+    signal_2 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i);
+    time_cuda = toc(time_cuda);
+    
+%     signal_1 = real(signal_1);
+    signal_2 = real(signal_2);
+
+    
+
+    % Compare cuda versus matlab
+    RMSE  = norm(signal_2(:) - signal_0(:)) / sqrt(X*Y*double(Tj));
+    nRMSE = RMSE / norm(signal_0(:));
+    
+%     fprintf('Cuda versus matlab:  RMSE: %g\n',  RMSE)
+%     fprintf('Cuda versus matlab: nRMSE: %g\n', nRMSE)
+        
+end
+
+
+
+
+
+
+%%
 function signal = convolutionOuterLoop8x4()
     % Image dimensions
     X = 64;
@@ -299,23 +470,33 @@ function signal = convolutionOuterLoop8x4()
     fprintf('Beginning the timings\n')
 
     % Reference implementation
-    signal_0 = zeros(X,Y,Tj,'single');
+%     signal_0 = zeros(X,Y,Tj,'single');
 	tj_vec = single(0:Tj-1) * dt_j; 
     tj_vec = permute(tj_vec, [1 3 2]);  % Make it 1x1xTj
     tic
-    for x = 1:X
-        for y = 1:Y
-            sj = zeros(1,1,Tj,'single');
-            for i = 1:Ti
-                %si = si + Cpj(j) * KTrans * convolutionFromMapleVectorized(ti, k_ep, tj(j), oversample_j);
-                sj = sj + Cpi(i) * KTrans(x,y) * convolutionFromMapleVectorized(tj_vec, k_ep(x,y), ti(i), oversample_i);
-                %signal_0(x,y,:) = dce_mri_mex( KTrans(x,y), k_ep(x,y), dt_i, Ti, dt_j, Tj, Cpi, oversample_i );
-            end
-            signal_0(x,y,:) = sj;
-        end
+%     for x = 1:X
+%         for y = 1:Y
+%             sj = zeros(1,1,Tj,'single');
+%             for i = 1:Ti
+%                 %si = si + Cpj(j) * KTrans * convolutionFromMapleVectorized(ti, k_ep, tj(j), oversample_j);
+%                 sj = sj + Cpi(i) * KTrans(x,y) * convolutionFromMapleVectorized(tj_vec, k_ep(x,y), ti(i), oversample_i);
+%                 %signal_0(x,y,:) = dce_mri_mex( KTrans(x,y), k_ep(x,y), dt_i, Ti, dt_j, Tj, Cpi, oversample_i );
+%             end
+%             signal_0(x,y,:) = sj;
+%         end
+%     end
+    sj = zeros(X,Y,Tj,'single');
+    for i = 1:Ti
+        %foo = convolutionFromMapleMatrized(tj_vec, k_ep, ti(i), oversample_i);
+        sj = sj + Cpi(i) * convolutionFromMapleMatrized(tj_vec, k_ep, ti(i), oversample_i);
+        %s = convolutionFromMapleMatrized(t, k, t_0, oversamplingFactor)
     end
+    signal_0 = bsxfun(@times,sj,KTrans);
     fprintf('Reference implementation (host): '), toc
-
+   % norm(signal_0(:) - signal_4(:))
+    '';
+    
+    
     
 %     % Scalar version of mex-wrapper call
 %     signal_1 = zeros(X,Y,Tj,'single');
@@ -445,6 +626,31 @@ function q = getQuantile(x, p)
     q = s(ind,:);
     
     % getQuantile([sampling(:), 2*sampling(:)],[a/2 0.25 0.5 0.75 1-a/2])
+end
+
+%%
+function s = convolutionFromMapleMatrized(t, k, t_0, oversamplingFactor)
+    x = t - t_0;
+    L = 1/oversamplingFactor;
+    s = zeros([size(k),length(t)]);
+
+    
+    ind_1 = (x > -L  &  x <= 0);
+    ind_2 = (x >  0  &  x <= L);
+    ind_3 = (x > L);
+    
+    kx1 = bsxfun(@times, k, x(ind_1));
+    kx2 = bsxfun(@times, k, x(ind_2));
+    kx3 = bsxfun(@times, k, x(ind_3));
+    
+    a = exp(k*L);
+    %s(ind_1) = exp(-k.*(L + x(ind_1))) - 1 + k.*(x(ind_1) + L); 
+    s(:,:,ind_1) = bsxfun(@plus, exp(-bsxfun(@times, k, L + x(ind_1))) - 1 + kx1, k*L); 
+    %s(ind_2) = exp(-k.*(L + x(ind_2))) - 2*exp(-k.*x(ind_2)) + 1 + k.*(L - x(ind_2));
+    s(:,:,ind_2) = bsxfun(@plus, exp(-bsxfun(@times, k, (L + x(ind_2)))) - 2*exp(-kx2) + 1 - kx2,  k*L);
+    s(:,:,ind_3) = bsxfun(@times, exp(-kx3), (1./a - 2 + a));
+
+    s = bsxfun(@rdivide, oversamplingFactor*s, (k .* k));
 end
 
 %%
