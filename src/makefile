@@ -7,9 +7,11 @@
 # nvcc --shared -o libsimple.so simple.cu --compiler-options '-fPIC' -I /usr/local/apps/cuda/3.1/cuda/include -L /usr/local/apps/cuda/3.1/cuda/lib64 -lcudart
 # mex mlsimple2.c -L. -lsimple
 
+CC=/usr/bin/gcc
+
 # setup CUDA flags for shared lib generation
 CUDA_CC        = nvcc
-CUDA_FLAGS     = --shared --compiler-options '-fPIC'
+CUDA_FLAGS     = --shared --compiler-options '-v -fPIC -O3' --compiler-bindir /usr/bin
 CUDA_INCLUDE   = -I/usr/local/apps/cuda/3.1/cuda/include -I/usr/local/apps/cuda/SDK2/C/common/inc
 CUDA_LIBRARIES = -L/usr/local/apps/cuda/3.1/cuda/lib64 -L/usr/local/apps/cuda/SDK2/C/lib
 CUDA_LIBS      = -lcudart -lcutil
