@@ -64,9 +64,9 @@ end
 %
 function shortenedDemo
 
-    delayDemo    
+%     delayDemo    
     multiConvolution;
-    timingDemo
+%     timingDemo
     
 %     convolutionOuterLoop;
     
@@ -695,10 +695,9 @@ end
 %%
 function signal = multiConvolution()
     % Image dimensions
-    X = 64;
-    Y = 64;
-%     X = 8;
-%     Y = 8;
+%     X = 64; Y = 64;
+    X = 16; Y = 16;
+%     X = 8;  Y = 8;
 
     % Initialize KTrans and k_ep to some arbitrary values
     k_ep    = zeros(X,Y,'single');
@@ -725,7 +724,8 @@ function signal = multiConvolution()
     b = 1; c = 4; f = @(x) 1/b * x./(1 + (x*c-c).^2); %plot(x, f(x))
     Z = f(Z);
     Z = Z * 10;
-    Z = max(Z, 1e-1);
+    %Z = max(Z, 1e-1);
+    Z = max(Z, 1/8);
     
     %figure, imagesc(Z'), axis image; colorbar
     
@@ -817,16 +817,47 @@ function signal = multiConvolution()
 %     end
 %     fprintf('Scalar version of mex-wrapper call: '), toc
 
-    
-    
+
+    d = 2^10;
+    KTrans = round(d*KTrans)/d;
+    k_ep = round(d*k_ep)/d;
+    Cpi = round(d*Cpi)/d;
     
     
     % Matrix version of mex-wrapper call
     tic
-    signal_2 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i);
-    fprintf('Matrix version of mex-wrapper call: '), toc
+    signal_2 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i, true);
+    fprintf('Matrix version of mex-wrapper call (GPU): '), toc
+
+    % Matrix version of mex-wrapper call
+    tic
+    signal_3 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i, false);
+    fprintf('Matrix version of mex-wrapper call (CPU): '), toc
     %signal_2 = signal_1 + randn(X,Y,Tj)*1e-3;  % Fake output
 
+    %colors = rand(X*Y,3);
+%     [v,ind] = sort(k_ep(:));
+%     colors(ind,1:3) = jet(X*Y);
+    
+    u = log10(k_ep(:));
+    u = (u - min(u)) / (max(u) - min(u) + eps);
+    
+    palette = jet(1000);
+    ind = min(size(palette,1), max(1, 1 + floor(u*max(1, size(palette,1) - 1))));
+    colors(:,1:3) = palette(ind,1:3);
+    
+    
+    %cdef = 'white';
+    cdef = 'black';
+    figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_2),[3 1 2]), [Tj X*Y]))
+    figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_3),[3 1 2]), [Tj X*Y]))
+    figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_2),[3 1 2]), [Tj X*Y]), tj, reshape(permute(real(signal_3),[3 1 2]), [Tj X*Y]), '--')
+    figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_2),[3 1 2]), [Tj X*Y]) - reshape(permute(real(signal_3),[3 1 2]), [Tj X*Y]))
+    
+    figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_2),[3 1 2]), [Tj X*Y]) - reshape(permute(real(signal_0),[3 1 2]), [Tj X*Y]))
+    figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_3),[3 1 2]), [Tj X*Y]) - reshape(permute(real(signal_0),[3 1 2]), [Tj X*Y]))
+    %figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_2),[3 1 2]), [Tj X*Y]), tj, reshape(permute(real(signal_3),[3 1 2]), [Tj X*Y]), '--', tj, reshape(permute(real(signal_0),[3 1 2]), [Tj X*Y]), ':')
+    
     
 %     signal_1 = real(signal_1);
     signal_2 = real(signal_2);
