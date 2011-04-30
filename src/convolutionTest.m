@@ -741,8 +741,8 @@ function signal = multiConvolution()
     tf = 5;
     T  = 50;
 
-    oversample_i = 8;
-    oversample_j = 2;
+    oversample_i = 4;
+    oversample_j = 16;
     
     Ti = oversample_i*T;
     Tj = oversample_j*T;
@@ -823,17 +823,19 @@ function signal = multiConvolution()
     k_ep = round(d*k_ep)/d;
     Cpi = round(d*Cpi)/d;
     
+
+    % Matrix version of mex-wrapper call
+    tic
+    signal_3 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i, false);
+    fprintf('Matrix version of mex-wrapper call (CPU): '), toc
+
     
     % Matrix version of mex-wrapper call
     tic
     signal_2 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i, true);
     fprintf('Matrix version of mex-wrapper call (GPU): '), toc
 
-    % Matrix version of mex-wrapper call
-    tic
-    signal_3 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i, false);
-    fprintf('Matrix version of mex-wrapper call (CPU): '), toc
-    %signal_2 = signal_1 + randn(X,Y,Tj)*1e-3;  % Fake output
+
 
     %colors = rand(X*Y,3);
 %     [v,ind] = sort(k_ep(:));
