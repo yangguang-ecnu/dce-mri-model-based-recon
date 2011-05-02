@@ -270,12 +270,14 @@ function timingDemo
     %set(gcf,'ResizeFcn', displayInUnits)
     
     figure('ResizeFcn', displayInUnits)
+    %figure
     %hold all
-    fontsize_title  = 48;
+    fontsize_title  = 32;
     fontsize        = floor(3/4*fontsize_title);
-    fontsize_axis   = floor(1/3*fontsize_title);
-    markersize = 25;
-    linewidth = 5;
+    fontsize_axis   = floor(2/3*fontsize_title);
+    %fontsize_title  = 32;
+    markersize = 16;
+    linewidth = 3;
     loglog(Xs.*Ys, time_matlab, '--X', Xs.*Ys, time_cuda, '-*', 'LineWidth', linewidth, 'MarkerSize', markersize)
     grid minor
     title('Time in seconds as a function of problem size (X x Y)', 'FontSize', fontsize_title)
@@ -287,7 +289,17 @@ function timingDemo
     set(gca,'FontSize', fontsize_axis)
     set(gca,'YTickLabel', cellfun(@num2str, num2cell(get(gca, 'YTick')), 'UniformOutput',false))
     set(gca,'XTickLabel', cellfun(@num2str, num2cell(get(gca, 'XTick')), 'UniformOutput',false))
-   
+    
+    set(gcf,'PaperOrientation','landscape')
+    set(gcf,'PaperUnits','normalized')
+    set(gcf,'PaperPositionMode','manual')
+    set(gcf,'PaperPosition',[0 0 1 1])
+    
+    print -dpdf output
+    print -dpng output
+    
+    '';
+    
     %loglog(Xs.*Ys, time_cuda, '-o')
     %diag(time_matlab)
     %diag(time_cuda)
@@ -670,7 +682,7 @@ function [time_matlab, time_cuda, RMSE, nRMSE] = convolutionRun(X,Y,T)
     
     % Matrix version of mex-wrapper call
     time_cuda = tic;
-    signal_2 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i);
+    signal_2 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i, true);
     time_cuda = toc(time_cuda);
     
 %     signal_1 = real(signal_1);
@@ -800,8 +812,10 @@ function signal = multiConvolution()
         sj = sj + Cpi(i) * convolutionFromMapleMatrized(tj_vec, k_ep, ti(i), oversample_i);
         %s = convolutionFromMapleMatrized(t, k, t_0, oversamplingFactor)
     end
-    signal_0 = bsxfun(@times,sj,KTrans);
+    signal_mat = bsxfun(@times,sj,KTrans);
     fprintf('Reference implementation (host): '), toc
+    
+    signal_0 = signal_mat;
    % norm(signal_0(:) - signal_4(:))
     '';
     
@@ -824,17 +838,21 @@ function signal = multiConvolution()
     Cpi = round(d*Cpi)/d;
     
 
-    % Matrix version of mex-wrapper call
+    % Matrix version of mex-wrapper call (CPU)
     tic
-    signal_3 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i, false);
+    signal_cpu = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i, false);
     fprintf('Matrix version of mex-wrapper call (CPU): '), toc
 
     
-    % Matrix version of mex-wrapper call
+    % Matrix version of mex-wrapper call (GPU)
     tic
-    signal_2 = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i, true);
+    signal_gpu = dce_mri_mex(KTrans, k_ep, dt_i, Ti, dt_j, Tj, Cpi, oversample_i, true);
     fprintf('Matrix version of mex-wrapper call (GPU): '), toc
-
+    
+%     signal_gpu = signal_2;
+%     signal_cpu = signal_3;
+    signal_2 = signal_gpu;
+    signal_3 = signal_cpu;
 
 
     %colors = rand(X*Y,3);
@@ -847,19 +865,47 @@ function signal = multiConvolution()
     palette = jet(1000);
     ind = min(size(palette,1), max(1, 1 + floor(u*max(1, size(palette,1) - 1))));
     colors(:,1:3) = palette(ind,1:3);
+
+%     set(gcf,'PaperOrientation','landscape')
+%     set(gcf,'PaperUnits','normalized')
+%     set(gcf,'PaperPositionMode','manual')
+%     set(gcf,'PaperPosition',[0 0 1 1])
+
+    fontsize_title  = 32;
+    fontsize        = floor(3/4*fontsize_title);
+    fontsize_axis   = floor(2/3*fontsize_title);
+    %fontsize_title  = 32;
+    markersize = 16;
+    linewidth = 3;
+
+    setup = { ...
+        'PaperOrientation','landscape', ...
+        'PaperUnits','normalized', ...
+        'PaperPositionMode','manual', ...
+        'PaperPosition',[0 0 1 1] ...
+    };
     
+%     print -dpdf output
+%     print -dpng output
+    
+    title_1 = 'GPU convolution output over time for different k_{ep} values';
+    title_2 = 'CPU convolution output over time for different k_{ep} values';
+    title_3 = 'Error between GPU and CPU convolutions';
     
     %cdef = 'white';
     cdef = 'black';
-    figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_2),[3 1 2]), [Tj X*Y]))
-    figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_3),[3 1 2]), [Tj X*Y]))
-    figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_2),[3 1 2]), [Tj X*Y]), tj, reshape(permute(real(signal_3),[3 1 2]), [Tj X*Y]), '--')
-    figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_2),[3 1 2]), [Tj X*Y]) - reshape(permute(real(signal_3),[3 1 2]), [Tj X*Y]))
+    figure(setup{:}), colordef(gcf, cdef), set(gca, 'ColorOrder', colors, 'FontSize', fontsize_axis), hold all; plot(tj, reshape(permute(real(signal_gpu),[3 1 2]), [Tj X*Y])), title(title_1, 'FontSize', fontsize_title), print('-dpng','-r300', ['curve_' num2str(gcf)]), print('-dpdf','-r300', ['curve_' num2str(gcf)])
+    figure(setup{:}), colordef(gcf, cdef), set(gca, 'ColorOrder', colors, 'FontSize', fontsize_axis), hold all; plot(tj, reshape(permute(real(signal_cpu),[3 1 2]), [Tj X*Y])), title(title_2, 'FontSize', fontsize_title), print('-dpng','-r300', ['curve_' num2str(gcf)]), print('-dpdf','-r300', ['curve_' num2str(gcf)])
+    %figure(setup{:}), colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all;
+    %plot(tj, reshape(permute(real(signal_gpu),[3 1 2]), [Tj X*Y]), tj, reshape(permute(real(signal_cpu),[3 1 2]), [Tj X*Y]), '--'), print('-dpng','-r300', ['curve_' num2str(gcf)]), print('-dpdf', ['curve_' num2str(gcf)])
+    figure(setup{:}), colordef(gcf, cdef), set(gca, 'ColorOrder', colors, 'FontSize', fontsize_axis), hold all; plot(tj, reshape(permute(real(signal_gpu),[3 1 2]), [Tj X*Y]) - reshape(permute(real(signal_cpu),[3 1 2]), [Tj X*Y])), title(title_3, 'FontSize', fontsize_title), print('-dpng','-r300', ['curve_' num2str(gcf)]), print('-dpdf','-r300', ['curve_' num2str(gcf)])
     
-    figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_2),[3 1 2]), [Tj X*Y]) - reshape(permute(real(signal_0),[3 1 2]), [Tj X*Y]))
-    figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_3),[3 1 2]), [Tj X*Y]) - reshape(permute(real(signal_0),[3 1 2]), [Tj X*Y]))
-    %figure, colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_2),[3 1 2]), [Tj X*Y]), tj, reshape(permute(real(signal_3),[3 1 2]), [Tj X*Y]), '--', tj, reshape(permute(real(signal_0),[3 1 2]), [Tj X*Y]), ':')
+    figure(setup{:}), colordef(gcf, cdef), set(gca, 'ColorOrder', colors, 'FontSize', fontsize_axis), hold all; plot(tj, reshape(permute(real(signal_gpu),[3 1 2]), [Tj X*Y]) - reshape(permute(real(signal_mat),[3 1 2]), [Tj X*Y])), title('GPU vs CPU (matlab)', 'FontSize', fontsize_title), print('-dpng','-r300', ['curve_' num2str(gcf)]), print('-dpdf','-r300', ['curve_' num2str(gcf)])
+    figure(setup{:}), colordef(gcf, cdef), set(gca, 'ColorOrder', colors, 'FontSize', fontsize_axis), hold all; plot(tj, reshape(permute(real(signal_cpu),[3 1 2]), [Tj X*Y]) - reshape(permute(real(signal_mat),[3 1 2]), [Tj X*Y])), title('CPU (GPU implementation) vs CPU (matlab)', 'FontSize', fontsize_title), print('-dpng','-r300', ['curve_' num2str(gcf)]), print('-dpdf','-r300', ['curve_' num2str(gcf)])
+    %figure(setup{:}), colordef(gcf, cdef), set(gca, 'ColorOrder', colors), hold all; plot(tj, reshape(permute(real(signal_gpu),[3 1 2]), [Tj X*Y]), tj, reshape(permute(real(signal_cpu),[3 1 2]), [Tj X*Y]), '--', tj, reshape(permute(real(signal_mat),[3 1 2]), [Tj X*Y]), ':')
     
+%     print -dpdf output
+%     print -dpng output
     
 %     signal_1 = real(signal_1);
     signal_2 = real(signal_2);
