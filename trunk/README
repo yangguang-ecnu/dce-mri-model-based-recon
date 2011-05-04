@@ -1,0 +1,13 @@
+Authors: Ben Felsted, Simon Williams, Cheng Ye
+
+Main code is available in the src/ directory, include:
+  - The CUDA kernel
+  - The MEX wrapper function
+  - A MATLAB script that runs a bunch of tests/experiments using the above
+  - A Makefile and README with further installation instructions
+
+A sample of the CUDA-MATLAB interface is available in the cuda-mex-test/
+directory.
+
+Some experimentation with convolutions algorithms in MATLAB is avilable in the
+convolution/ directory.
