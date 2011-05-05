@@ -1,0 +1,44 @@
+#----------------------------------------------------------------------------
+# Authors: Ben Felsted, Simon Williams, Cheng Ye
+#    Date: Spring 2011
+#    File: Makefile.in -- Build configuration file meant to be edited
+#----------------------------------------------------------------------------
+
+
+# Source files for nvcc and mex, respectively
+CUDA_SRC              := dce_mri_kernel.cu
+MEX_SRC               := dce_mri_mex.c
+
+
+# Default Locations of CUDA toolkit and CUDA sdk root directories 
+CUDA_TOOLKIT_ROOT_DIR := /usr/local/apps/cuda/3.1/cuda
+CUDA_SDK_ROOT_DIR     := /usr/local/apps/cuda/SDK2/C
+# These can be overridden by passing assignments as arguments to the make invocation:
+# $ make CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda/3.1/cuda CUDA_SDK_ROOT_DIR=/usr/local/cuda/SDK2/C
+
+# These are user-defined flags to pass and can be set using an editor 
+# or overridden by passing arguments in the form of assignments to make.
+CC_FLAGS              := 
+MEX_FLAGS             := 
+
+# Default location of cc, gcc, g++ compiler executables
+CC_BINDIR             := /usr/bin
+CUDA_BINDIR           := $(CUDA_TOOLKIT_ROOT_DIR)/bin
+
+# Verbose build can be enabled by setting VERBOSE=-v or by calling 'make VERBOSE=-v'
+VERBOSE               := 
+
+# Setup CUDA flags for shared lib generation
+CUDA_CC               := $(CUDA_BINDIR)/nvcc
+CUDA_CC_FLAGS         := -fPIC $(VERBOSE) $(CC_FLAGS)
+CUDA_FLAGS            := --shared --compiler-options $(CUDA_CC_FLAGS) --compiler-bindir $(CC_BINDIR)
+CUDA_INCLUDE          := -I$(CUDA_TOOLKIT_ROOT_DIR)/include -I$(CUDA_SDK_ROOT_DIR)/common/inc
+CUDA_LIBRARY          := -L$(CUDA_TOOLKIT_ROOT_DIR)/lib64 -L$(CUDA_SDK_ROOT_DIR)/lib
+CUDA_LIBS             := -lcudart -lcutil
+
+# Setup mex flags for mex function generation
+MEX_CC                := mex
+MEX_LIBS              := -ldcemri
+MEX_LIBRARY           := -L. -Wl,-rpath .
+MEX_CC_FLAGS          := CC=$(CC_BINDIR)/gcc CXX=$(CC_BINDIR)/g++ $(VERBOSE) $(MEX_FLAGS)
+
